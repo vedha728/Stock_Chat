@@ -1,0 +1,12 @@
+# Secrets & Credentials
+.env
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Local datasets and temporary download files
+data/raw/
+data/processed/
+data/macro/
+data/fii_dii/live_fii_dii_cache.csv
