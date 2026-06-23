@@ -3,7 +3,7 @@ import sys
 import argparse
 import pandas as pd
 from dotenv import load_dotenv
-from rich.console import Console
+from rich.console import Console, Group as RichGroup
 from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
@@ -192,7 +192,7 @@ def display_score_breakdown(technical: dict, sentiment_score: float,
     ))
 
 
-def display_prediction_report(ticker: str, company: str, price: float, result: dict, technical_summary: dict, sentiment_score: float, fii_dii_summary: dict, explanation: str, user_input: str = "", fundamentals: dict = None, verbose: bool = False):
+def display_prediction_report(ticker: str, company: str, price: float, result: dict, technical_summary: dict, sentiment_score: float, fii_dii_summary: dict, model_analysis: str, beginner_explanation: str, user_input: str = "", fundamentals: dict = None, verbose: bool = False):
     """Renders the AI prediction report and LLM explanation on the terminal."""
     rec = result["Recommendation"]
     conf = result["Confidence"] * 100
@@ -212,70 +212,141 @@ def display_prediction_report(ticker: str, company: str, price: float, result: d
     asked_hold = any(w in q for w in ["hold", "keep", "wait", "stay"])
 
     # 3. Main recommendation panel
-    rec_text = Text()
-    rec_text.append(f"\n {direct_answer}\n", style=answer_style)
+    info_table = Table(show_header=False, box=None, padding=(0, 1))
+    info_table.add_column("Label", style="bold white", width=11)
+    info_table.add_column("Content")
     
-    # Inject intent-specific probabilities first
-    if asked_buy:
-        rec_text.append(f"\n YOUR QUERY:  BUY\n", style="bold white")
-        rec_text.append(f" BUY Chance:   ", style="bold white")
-        rec_text.append(f"{buy_pct:.1f}%\n", style=rec_color)
-    elif asked_sell:
-        rec_text.append(f"\n YOUR QUERY:  SELL\n", style="bold white")
-        rec_text.append(f" SELL Chance:  ", style="bold white")
-        rec_text.append(f"{sell_pct:.1f}%\n", style=rec_color)
-    elif asked_hold:
-        rec_text.append(f"\n YOUR QUERY:  HOLD\n", style="bold white")
-        rec_text.append(f" HOLD Chance:  ", style="bold white")
-        rec_text.append(f"{hold_pct:.1f}%\n", style=rec_color)
-
-    rec_text.append(f"\n SIGNAL:      ", style="bold white")
-    rec_text.append(f"{rec_icon}", style=rec_color)
+    info_table.add_row(" 📊 Stock:", f"[bold white]{company} ({ticker})[/bold white]")
+    info_table.add_row(" 💵 Price:", f"[bold white]₹{price:,.2f}[/bold white]")
+    info_table.add_row("", "")  # Spacer
     
+    # Check if near-buy watch zone
+    is_near_buy = False
     if result.get("Low_Confidence"):
-        orig_conf = result.get("Original_Confidence", 0.0) * 100
-        rec_text.append(f" (Not enough certainty to act)", style="bold yellow")
-        rec_text.append(f"\n CONFIDENCE:  ", style="bold white")
-        rec_text.append(f"{orig_conf:.1f}% ", style="bold yellow")
-        rec_text.append(f"(signals unclear — defaulted to HOLD)\n", style="dim yellow")
+        orig_rec = result.get("Original_Recommendation", "?")
+        if orig_rec == "BUY" and 50.0 <= buy_pct <= 54.9:
+            is_near_buy = True
+
+    verdict_text = Text()
+    if result.get("Low_Confidence"):
+        if is_near_buy:
+            verdict_text.append("⚖️ HOLD (Near-Buy Watch Zone)", style="bold yellow")
+        else:
+            verdict_text.append("⚖️ HOLD (Below threshold)", style=rec_color)
     else:
-        rec_text.append(f"\n CONFIDENCE:  ", style="bold white")
-        rec_text.append(f"{conf:.1f}%\n", style=rec_color)
+        verdict_text.append(f"{rec_icon} ({conf:.1f}% Confidence)", style=rec_color)
+    info_table.add_row(" Verdict:", verdict_text)
     
+    if result.get("Low_Confidence") or rec == "HOLD":
+        info_table.add_row("", "")  # Spacer
+        
+        if result.get("Low_Confidence"):
+            orig_rec = result.get("Original_Recommendation", "?")
+            orig_conf = result.get("Original_Confidence", 0.0) * 100
+            
+            if asked_sell:
+                if is_near_buy:
+                    reason_text = Text(
+                        f"BUY signal ({buy_pct:.1f}%) is close to 55.0% threshold. No sell signal exists.\n"
+                        f"Defaulting to HOLD.",
+                        style="bold yellow"
+                    )
+                elif orig_rec == "BUY":
+                    reason_text = Text(
+                        f"BUY signal ({orig_conf:.1f}%) below 55.0% threshold. No strong sell signal exists.\n"
+                        f"Defaulting to HOLD.",
+                        style="bold yellow"
+                    )
+                elif orig_rec == "SELL":
+                    reason_text = Text(
+                        f"SELL signal ({orig_conf:.1f}%) below 55.0% threshold. Trend is not weak enough to sell.\n"
+                        f"Defaulting to HOLD.",
+                        style="bold yellow"
+                    )
+                else:
+                    reason_text = Text(
+                        f"Market trend is neutral ({orig_conf:.1f}%). Defaulting to HOLD.",
+                        style="bold yellow"
+                    )
+            else: # Buying/neutral perspective
+                if is_near_buy:
+                    reason_text = Text(
+                        f"BUY signal ({buy_pct:.1f}%) is very close to 55.0% safety threshold.\n"
+                        f"Watch closely for breakout.",
+                        style="bold yellow"
+                    )
+                else:
+                    reason_text = Text(
+                        f"{orig_rec} signal ({orig_conf:.1f}%) below safety threshold of 55.0%.\n"
+                        f"Defaulting to HOLD.",
+                        style="bold yellow"
+                    )
+        else: # Natural HOLD (Low_Confidence is False)
+            if asked_sell:
+                reason_text = Text(
+                    f"SELL chance is low ({sell_pct:.1f}%). Neutral market trend.\n"
+                    f"Selling is not recommended.",
+                    style="bold yellow"
+                )
+            elif asked_buy:
+                reason_text = Text(
+                    f"BUY chance is low ({buy_pct:.1f}%). Neutral market trend.\n"
+                    f"Buying is not recommended.",
+                    style="bold yellow"
+                )
+            else:
+                reason_text = Text(
+                    f"Market trend is neutral. Recommendation is to HOLD.",
+                    style="bold yellow"
+                )
+        info_table.add_row(" Reason:", reason_text)
+        
+    chances_text = Text()
+    chances_text.append(f"\n SIGNAL CHANCES:\n", style="bold white")
+    
+    max_val = max(buy_pct, hold_pct, sell_pct)
+    orig_rec = result.get("Original_Recommendation", "?")
+    
+    # BUY
+    chances_text.append("  • 📈 BUY Chance  ", style="bold white")
+    if result.get("Low_Confidence") and orig_rec == "BUY":
+        chances_text.append(f": {buy_pct:.1f}% (Highest, but below threshold)\n", style="bold yellow")
+    elif buy_pct == max_val:
+        chances_text.append(f": {buy_pct:.1f}% (Strong Buy Signal ✅)\n", style="bold green")
+    else:
+        chances_text.append(f": {buy_pct:.1f}%\n", style="white")
+        
+    # HOLD
+    chances_text.append("  • ⚖️ HOLD Chance ", style="bold white")
+    if result.get("Low_Confidence") and orig_rec == "HOLD":
+        chances_text.append(f": {hold_pct:.1f}% (Highest, but below threshold)\n", style="bold yellow")
+    elif hold_pct == max_val:
+        if result.get("Low_Confidence"):
+            chances_text.append(f": {hold_pct:.1f}% (Defaulted HOLD ⚖️)\n", style="bold yellow")
+        else:
+            chances_text.append(f": {hold_pct:.1f}% (Neutral Trend ⚖️)\n", style="bold yellow")
+    else:
+        chances_text.append(f": {hold_pct:.1f}%\n", style="white")
+        
+    # SELL
+    chances_text.append("  • 📉 SELL Chance ", style="bold white")
+    if result.get("Low_Confidence") and orig_rec == "SELL":
+        chances_text.append(f": {sell_pct:.1f}% (Highest, but below threshold)\n", style="bold yellow")
+    elif sell_pct == max_val:
+        chances_text.append(f": {sell_pct:.1f}% (Strong Sell Signal 🛑)\n", style="bold red")
+    else:
+        chances_text.append(f": {sell_pct:.1f}%\n", style="white")
+        
     rec_panel = Panel(
-        rec_text, 
-        title=f"📊 [bold white]{company} ({ticker})[/bold white] | Current Price: [bold yellow]₹{price:,.2f}[/bold yellow]",
+        RichGroup(info_table, chances_text), 
+        title=f"📊 [bold white]Analysis Report[/bold white]",
         border_style=panel_border
     )
     console.print(rec_panel)
-
-
-    # Show amber notice when confidence threshold filter kicked in
-    if result.get("Low_Confidence"):
-        orig_conf = result.get("Original_Confidence", 0.0) * 100
-        
-        q = user_input.lower()
-        asked_sell = any(w in q for w in ["sell", "exit", "quit", "offload"])
-        asked_buy = any(w in q for w in ["buy", "purchase", "invest", "get", "enter"])
-        
-        if asked_sell:
-            reason_phrase = "clearly recommend a SELL"
-            what_to_do = "Hold your shares. Do not sell yet. Wait for signals to become clearer."
-        elif asked_buy:
-            reason_phrase = "clearly recommend a BUY"
-            what_to_do = "Hold. Do not buy right now. Wait for signals to become clearer."
-        else:
-            reason_phrase = "clearly recommend a buy or sell action"
-            what_to_do = "Hold. Do not make new trades right now. Wait for signals to become clearer."
-
-        console.print(Panel(
-            f"[bold yellow]⚠  Mixed Signals Detected[/bold yellow]\n\n"
-            f"[white]The model analysed all signals but could not find a strong enough reason to {reason_phrase}.\n"
-            f"Model certainty was [bold]{orig_conf:.1f}%[/bold] — below the [bold]55% minimum[/bold] needed to act.\n\n"
-            f"[bold]What to do:[/bold] {what_to_do}[/white]",
-            border_style="yellow",
-            title="[bold yellow]⚠  No Clear Signal — Proceed with Caution[/bold yellow]"
-        ))
+    
+    # 2. Model Analysis & Strategy
+    console.print()
+    console.print(Panel(model_analysis, title="🤖 Model Analysis & Strategy", border_style="cyan"))
     
     # 3. Core Signals Table
     # Determine signal directions
@@ -305,29 +376,79 @@ def display_prediction_report(ticker: str, company: str, price: float, result: d
     else:
         money_status = "[green]Foreign investors buying, Indian investors reducing ✅[/green]"
 
-    signal_table = Table(title="🔍 Core Signal Breakdown", show_header=True, header_style="bold dim", box=None)
-    signal_table.add_column("Signal Domain", style="bold white")
-    signal_table.add_column("Current Outlook")
+    signal_table = Table(show_header=True, header_style="bold dim", box=None, padding=(0, 2), width=80)
+    signal_table.add_column("Signal Domain", style="bold white", min_width=25)
+    signal_table.add_column("Current Outlook", min_width=50)
     
     signal_table.add_row("📈 Technical Chart Trend", tech_status)
     signal_table.add_row("📰 Public News Sentiment", sent_status)
     signal_table.add_row("💼 Smart Money (Institutions)", money_status)
-    
-    console.print(Panel(signal_table, border_style="dim"))
+
+    # Technical sub-table (RSI, MA50, MA200, MACD)
+    tech_detail_table = Table(show_header=True, header_style="bold dim", box=None, padding=(0, 2), width=65)
+    tech_detail_table.add_column("Indicator", style="bold white", min_width=20)
+    tech_detail_table.add_column("Value", justify="right", min_width=10)
+    tech_detail_table.add_column("Status", min_width=28)
+
+    rsi = technical_summary.get("RSI", None)
+    if rsi is not None:
+        if rsi >= 70:
+            rsi_status = "[red]Overbought ⚠️[/red]"
+        elif rsi <= 30:
+            rsi_status = "[green]Oversold — Potential Buy 🟢[/green]"
+        else:
+            rsi_status = "[yellow]Neutral ⚖️[/yellow]"
+        tech_detail_table.add_row("RSI (14-day)", f"{rsi:.1f}", rsi_status)
+
+    ma50 = technical_summary.get("MA50", None)
+    current_close = technical_summary.get("Close", None)
+    if ma50 is not None and current_close is not None:
+        ma50_status = "[green]Above (Uptrend) ✅[/green]" if current_close >= ma50 else "[red]Below (Downtrend) ⚠️[/red]"
+        tech_detail_table.add_row("50-Day Moving Avg", f"₹{ma50:,.2f}", ma50_status)
+
+    ma200 = technical_summary.get("MA200", None)
+    if ma200 is not None and current_close is not None:
+        ma200_status = "[green]Above (Long-term Up) ✅[/green]" if current_close >= ma200 else "[red]Below (Long-term Down) ⚠️[/red]"
+        tech_detail_table.add_row("200-Day Moving Avg", f"₹{ma200:,.2f}", ma200_status)
+
+    macd_hist = technical_summary.get("MACD_Hist", None)
+    if macd_hist is not None:
+        macd_status = "[green]Bullish momentum 📈[/green]" if macd_hist > 0 else "[red]Bearish momentum 📉[/red]"
+        tech_detail_table.add_row("MACD Histogram", f"{macd_hist:+.2f}", macd_status)
+
+    console.print()
+    console.print(Panel(signal_table, title="🔍 Core Signal Breakdown", border_style="dim"))
+    console.print()
+    console.print(Panel(tech_detail_table, title="📐 Technical Details", border_style="dim"))
 
     # 3.5 Fundamentals Table (if available)
     if fundamentals:
-        fund_table = Table(show_header=True, header_style="bold dim", box=None)
-        fund_table.add_column("Key Metric", style="bold white")
-        fund_table.add_column("Value", justify="right")
-        fund_table.add_column("Benchmark / Interpretation")
+        fund_table = Table(show_header=True, header_style="bold dim", box=None, padding=(0, 2), width=95)
+        fund_table.add_column("Key Metric", style="bold white", min_width=30)
+        fund_table.add_column("Value", justify="right", min_width=20)
+        fund_table.add_column("Benchmark / Interpretation", min_width=40)
         
-        # P/E Ratio
+        # P/E Ratio — label type (Trailing / Forward / Computed)
         pe = fundamentals.get("PE_Ratio")
-        pe_str = f"{pe:.2f}" if pe is not None else "N/A"
+        pe_type = fundamentals.get("PE_Type", "Trailing")
+        eps = fundamentals.get("EPS")
+        if pe is not None:
+            pe_str = f"{pe:.2f}  [{pe_type} P/E]"
+        elif eps is not None and eps < 0:
+            pe_str = f"N/A  (Negative EPS: ₹{eps:.2f})"
+        else:
+            pe_str = "N/A"
         pe_interp = "[green]Undervalued / Healthy (< 25)[/green]" if pe is not None and pe < 25 else \
-                    ("[yellow]Fairly Valued (25-40)[/yellow]" if pe is not None and pe <= 40 else "[red]Premium / High Value (> 40)[/red]" if pe is not None else "N/A")
+                    ("[yellow]Fairly Valued (25-40)[/yellow]" if pe is not None and pe <= 40 else \
+                     "[red]Premium / High Value (> 40)[/red]" if pe is not None else \
+                     "[dim]Not applicable — company has negative earnings[/dim]")
         fund_table.add_row("📊 P/E Ratio (Price/Earnings)", pe_str, pe_interp)
+
+        # EPS (Earnings Per Share)
+        if eps is not None:
+            eps_str = f"₹{eps:.2f}"
+            eps_interp = "[green]Profitable ✅[/green]" if eps > 0 else "[red]Loss-making ⚠️[/red]"
+            fund_table.add_row("📉 EPS (Earnings Per Share)", eps_str, eps_interp)
         
         # P/B Ratio
         pb = fundamentals.get("PB_Ratio")
@@ -357,15 +478,17 @@ def display_prediction_report(ticker: str, company: str, price: float, result: d
                       ("[blue]Large Cap (20,000 - 1,00,000 Cr)[/blue]" if mcap is not None and mcap >= 20000 else "[dim]Mid/Small Cap (< 20,000 Cr)[/dim]" if mcap is not None else "N/A")
         fund_table.add_row("🏛️ Market Capitalization", mcap_str, mcap_interp)
         
+        console.print()
         console.print(Panel(fund_table, title="📊 Fundamental Valuation (Long-Term Health)", border_style="dim"))
 
-    
     # 4. Verbose Score Breakdown (only when --verbose flag is set)
     if verbose:
+        console.print()
         display_score_breakdown(technical_summary, sentiment_score, fii_dii_summary, fundamentals, result)
 
     # 5. Gemini Explanation Output
-    console.print(Panel(explanation, title="🧠 AI Explanation & Strategy Guide (For Beginners)", border_style="cyan"))
+    console.print()
+    console.print(Panel(beginner_explanation, title="🧠 AI Explanation & Strategy Guide (For Beginners)", border_style="cyan"))
 
 
 def display_comparison_report(stocks: list[dict], ai_summary: str):
@@ -495,6 +618,40 @@ def main_loop(verbose: bool = False):
             user_input = Prompt.ask("\n[bold cyan]Chatbot[/bold cyan]")
             user_input = user_input.strip()
             
+            # Intercept general Tata Motors queries
+            q_clean = user_input.lower().strip()
+            is_general_tata = ("tata motor" in q_clean or "tatamotors" in q_clean) and \
+                              not any(w in q_clean for w in ["pv", "passenger", "cv", "commercial", "tmpv", "tmcv"])
+            
+            if is_general_tata:
+                console.print("\n[bold yellow]💡 Tata Motors has demerged into two separate listed entities:[/bold yellow]")
+                console.print("  1. [bold cyan]TMPV[/bold cyan] (Tata Motors Passenger Vehicles Limited - Cars, EVs, JLR)")
+                console.print("  2. [bold cyan]TMCV[/bold cyan] (Tata Motors Commercial Vehicles Limited - Trucks, Buses)")
+                console.print()
+                
+                choice = Prompt.ask(
+                    "[bold white]Which company are you asking about? [1/2/Cancel][/bold white]", 
+                    choices=["1", "2", "PV", "CV", "TMPV", "TMCV", "pv", "cv", "tmpv", "tmcv", "Cancel", "cancel"],
+                    show_choices=False,
+                    default="Cancel"
+                )
+                
+                if choice.upper() in ["1", "PV", "TMPV"]:
+                    for term in ["tata motors", "tatamotors", "tata motor"]:
+                        if term in user_input.lower():
+                            idx = user_input.lower().find(term)
+                            user_input = user_input[:idx] + "TMPV" + user_input[idx+len(term):]
+                    console.print("[*] Re-routing query to [bold cyan]Tata Motors Passenger Vehicles (TMPV)[/bold cyan]...")
+                elif choice.upper() in ["2", "CV", "TMCV"]:
+                    for term in ["tata motors", "tatamotors", "tata motor"]:
+                        if term in user_input.lower():
+                            idx = user_input.lower().find(term)
+                            user_input = user_input[:idx] + "TMCV" + user_input[idx+len(term):]
+                    console.print("[*] Re-routing query to [bold cyan]Tata Motors Commercial Vehicles (TMCV)[/bold cyan]...")
+                else:
+                    console.print("[*] Query cancelled.")
+                    continue
+            
             # Check exit
             if user_input.lower() in ['exit', 'quit']:
                 console.print("\n[bold yellow]👋 Thank you for using the AI Stock Advisor! Happy Investing![/bold yellow]\n")
@@ -597,16 +754,30 @@ def main_loop(verbose: bool = False):
                             if not fundamentals:
                                 console.print("Fundamentals data unavailable.")
                             else:
-                                fund_table = Table(show_header=True, header_style="bold dim", box=None)
-                                fund_table.add_column("Key Metric", style="bold white")
-                                fund_table.add_column("Value", justify="right")
-                                fund_table.add_column("Benchmark / Interpretation")
+                                fund_table = Table(show_header=True, header_style="bold dim", box=None, padding=(0, 2), width=95)
+                                fund_table.add_column("Key Metric", style="bold white", min_width=30)
+                                fund_table.add_column("Value", justify="right", min_width=20)
+                                fund_table.add_column("Benchmark / Interpretation", min_width=40)
                                 
                                 pe = fundamentals.get("PE_Ratio")
-                                pe_str = f"{pe:.2f}" if pe is not None else "N/A"
+                                pe_type = fundamentals.get("PE_Type", "Trailing")
+                                eps = fundamentals.get("EPS")
+                                if pe is not None:
+                                    pe_str = f"{pe:.2f}  [{pe_type} P/E]"
+                                elif eps is not None and eps < 0:
+                                    pe_str = f"N/A  (Negative EPS: ₹{eps:.2f})"
+                                else:
+                                    pe_str = "N/A"
                                 pe_interp = "[green]Undervalued / Healthy (< 25)[/green]" if pe is not None and pe < 25 else \
-                                            ("[yellow]Fairly Valued (25-40)[/yellow]" if pe is not None and pe <= 40 else "[red]Premium / High Value (> 40)[/red]" if pe is not None else "N/A")
+                                            ("[yellow]Fairly Valued (25-40)[/yellow]" if pe is not None and pe <= 40 else \
+                                             "[red]Premium / High Value (> 40)[/red]" if pe is not None else \
+                                             "[dim]Not applicable — company has negative earnings[/dim]")
                                 fund_table.add_row("📊 P/E Ratio (Price/Earnings)", pe_str, pe_interp)
+
+                                if eps is not None:
+                                    eps_str = f"₹{eps:.2f}"
+                                    eps_interp = "[green]Profitable ✅[/green]" if eps > 0 else "[red]Loss-making ⚠️[/red]"
+                                    fund_table.add_row("📉 EPS (Earnings Per Share)", eps_str, eps_interp)
                                 
                                 pb = fundamentals.get("PB_Ratio")
                                 pb_str = f"{pb:.2f}" if pb is not None else "N/A"
@@ -659,9 +830,9 @@ def main_loop(verbose: bool = False):
                             else:
                                 tech_status = "[red]Price moving DOWN ⚠️[/red]"
                                 
-                            tech_table = Table(show_header=True, header_style="bold dim", box=None)
-                            tech_table.add_column("Indicator", style="bold white")
-                            tech_table.add_column("Value / Outlook")
+                            tech_table = Table(show_header=True, header_style="bold dim", box=None, padding=(0, 2), width=70)
+                            tech_table.add_column("Indicator", style="bold white", min_width=25)
+                            tech_table.add_column("Value / Outlook", min_width=40)
                             
                             tech_table.add_row("Price Trend Status", tech_status)
                             tech_table.add_row("RSI (14-day momentum)", f"{latest_price_row.get('RSI', 50.0):.2f}")
@@ -677,63 +848,107 @@ def main_loop(verbose: bool = False):
                 with console.status("[bold green]Analyzing stock market signals...[/bold green]") as status:
                     try:
                         status.update(f"[bold green]Fetching stock price history for {ticker}...[/bold green]")
-                        
-                        # 2. Download price data (1 year)
+
+                        # Step 1: Download price data (critical — cannot continue without this)
                         price_df = fetch_stock_price(ticker)
                         if isinstance(price_df.columns, pd.MultiIndex):
                             price_df.columns = price_df.columns.get_level_values(0)
-                            
-                        # 3. Calculate indicators
+
+                        # Step 2: Calculate indicators (critical — required for ML features)
                         price_indicators_df = calculate_technical_indicators(price_df)
                         latest_price_row = price_indicators_df.iloc[-1]
                         current_price = float(latest_price_row['Close'])
-                        
-                        # 4. Fetch recent headlines
+
+                        # Step 3: Fetch recent headlines (non-critical — fallback to empty list)
                         status.update(f"[bold green]Reading headlines for {company_name}...[/bold green]")
-                        headlines = fetch_news_headlines(ticker, company_name)
-                        
-                        # 5. Fetch FII/DII data
+                        headlines_available = True
+                        try:
+                            headlines = fetch_news_headlines(ticker, company_name)
+                        except Exception as news_err:
+                            console.print(f"[dim yellow]⚠️  News headlines unavailable ({news_err}). Continuing with technical & ML analysis.[/dim yellow]")
+                            headlines = []
+                            headlines_available = False
+
+                        # Step 4: Fetch FII/DII data (non-critical — fallback to neutral zeros)
                         status.update("[bold green]Checking institutional cash flows...[/bold green]")
-                        fii_dii_df = fetch_latest_fii_dii()
-                        
-                        # Generate cumulative 10-day summary
-                        fii_net_list = fii_dii_df['FII_Net'].tolist()
-                        dii_net_list = fii_dii_df['DII_Net'].tolist()
-                        fii_dii_summary = analyze_institutional_signals(fii_net_list, dii_net_list)
-                        
-                        # 5.5 Fetch fundamental valuation metrics
+                        try:
+                            fii_dii_df = fetch_latest_fii_dii()
+                            fii_net_list = fii_dii_df['FII_Net'].tolist()
+                            dii_net_list = fii_dii_df['DII_Net'].tolist()
+                            fii_dii_summary = analyze_institutional_signals(fii_net_list, dii_net_list)
+                        except Exception as fii_err:
+                            console.print(f"[dim yellow]⚠️  FII/DII data unavailable ({fii_err}). Using neutral values.[/dim yellow]")
+                            fii_dii_summary = {
+                                "FII_10d_Net": 0.0, "DII_10d_Net": 0.0,
+                                "FII_Trend": 0, "DII_Trend": 0, "Divergence_Flag": 0
+                            }
+
+                        # Step 5: Fetch fundamental valuation metrics (non-critical)
                         status.update(f"[bold green]Fetching fundamental valuation data for {company_name}...[/bold green]")
-                        fundamentals = fetch_fundamentals(ticker)
-                        
-                        # 6. Analyze News Sentiment
+                        try:
+                            fundamentals = fetch_fundamentals(ticker)
+                        except Exception as fund_err:
+                            console.print(f"[dim yellow]⚠️  Fundamentals unavailable ({fund_err}). Skipping valuation panel.[/dim yellow]")
+                            fundamentals = {}
+
+                        # Step 6: Analyze News Sentiment (non-critical — fallback to neutral)
                         status.update("[bold green]Running sentiment analyzer on headlines...[/bold green]")
-                        sentiment_summary = analyze_news_sentiment(headlines)
-                        sent_score, pos_count, neg_count = sentiment_summary
-                        
-                        # 6.5 Fetch global macro returns
+                        try:
+                            sentiment_summary = analyze_news_sentiment(headlines)
+                            sent_score, pos_count, neg_count = sentiment_summary
+                        except Exception as sent_err:
+                            console.print(f"[dim yellow]⚠️  Sentiment analysis failed ({sent_err}). Using neutral sentiment.[/dim yellow]")
+                            sentiment_summary = (0.0, 3, 3)
+                            sent_score = 0.0
+
+                        # Step 7: Fetch global macro returns (non-critical — fallback to zeros)
                         status.update("[bold green]Fetching latest global macro returns...[/bold green]")
-                        macro_returns = get_latest_macro_returns()
-                        
-                        # 7. Merge features and run ML Prediction
+                        try:
+                            macro_returns = get_latest_macro_returns()
+                        except Exception as macro_err:
+                            console.print(f"[dim yellow]⚠️  Macro data unavailable ({macro_err}). Using neutral macro values.[/dim yellow]")
+                            macro_returns = (0.0, 0.0, 0.0)
+
+                        # Step 8: Merge features and run ML Prediction
                         status.update("[bold green]Running Machine Learning Classifier...[/bold green]")
-                        feature_row = prepare_inference_row(latest_price_row, fii_dii_summary, sentiment_summary, macro_returns)
+                        feature_row = prepare_inference_row(price_indicators_df, fii_dii_summary, sentiment_summary, macro_returns)
                         ml_result = predict_stock_action(feature_row)
-                        
-                        # 8. Explain via Gemini
+
+                        # Step 9: Explain via Gemini
                         status.update("[bold green]Translating findings via Gemini AI...[/bold green]")
-                        explanation = generate_beginner_explanation(
-                            ticker,
-                            company_name,
-                            current_price,
-                            ml_result,
-                            latest_price_row.to_dict(),
-                            sent_score,
-                            headlines,
-                            fii_dii_summary,
-                            fundamentals
-                        )
-                        
-                        # 9. Output beautifully formatted dashboard
+                        try:
+                            model_analysis, beginner_explanation = generate_beginner_explanation(
+                                ticker,
+                                company_name,
+                                current_price,
+                                ml_result,
+                                latest_price_row.to_dict(),
+                                sent_score,
+                                headlines,
+                                fii_dii_summary,
+                                fundamentals,
+                                user_input=user_input
+                            )
+                        except Exception as gemini_err:
+                            console.print(f"[dim yellow]⚠️  Gemini AI explanation unavailable ({gemini_err}). Showing raw analysis.[/dim yellow]")
+                            model_analysis = (
+                                "Factors Favouring Buy (+):\n"
+                                "  • [RSI] Momentum is neutral.\n\n"
+                                "Factors Against Buy / Favouring Hold (-):\n"
+                                "  • [Moving Averages] Price is under pressure.\n\n"
+                                "Strategic Advice:\n"
+                                f"  • Action: Avoid buying new shares. Hold current shares.\n"
+                                f"  • Stop Loss (Safety Net): ₹{current_price * 0.95:,.2f} (Current price: ₹{current_price:,.2f}) — limit losses."
+                            )
+                            beginner_explanation = (
+                                f"Technical analysis complete for {company_name} ({ticker}).\n"
+                                f"Current price: ₹{current_price:,.2f}\n"
+                                f"ML Signal: {ml_result.get('Recommendation', 'N/A')} "
+                                f"({ml_result.get('Confidence', 0)*100:.1f}% confidence)\n"
+                                f"[AI explanation unavailable — Gemini API may be down or key missing]"
+                            )
+
+                        # Step 10: Output beautifully formatted dashboard
                         display_prediction_report(
                             ticker,
                             company_name,
@@ -742,7 +957,8 @@ def main_loop(verbose: bool = False):
                             latest_price_row.to_dict(),
                             sent_score,
                             fii_dii_summary,
-                            explanation,
+                            model_analysis,
+                            beginner_explanation,
                             user_input,   # pass the original question for direct answer
                             fundamentals,
                             verbose=verbose
@@ -750,7 +966,9 @@ def main_loop(verbose: bool = False):
 
                     except Exception as err:
                         console.print(f"[bold red]❌ Analysis Error:[/bold red] {err}")
-                        console.print("[dim]Please ensure your internet connection is active and your API keys are added in the .env file.[/dim]")
+                        console.print("[dim]Could not fetch price data. Check that the stock ticker is valid and your internet connection is active.[/dim]")
+
+
             
             # Side-by-Side stock comparison
             else:
@@ -779,7 +997,7 @@ def main_loop(verbose: bool = False):
                             sentiment_summary = analyze_news_sentiment(headlines)
                             sent_score, _, _ = sentiment_summary
                             
-                            feature_row = prepare_inference_row(latest_price_row, fii_dii_summary, sentiment_summary, macro_returns)
+                            feature_row = prepare_inference_row(price_indicators_df, fii_dii_summary, sentiment_summary, macro_returns)
                             ml_result = predict_stock_action(feature_row)
                             
                             stocks_data.append({

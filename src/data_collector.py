@@ -12,9 +12,12 @@ load_dotenv()
 # Multiple aliases per stock so users can type anything and get matched
 POPULAR_STOCKS = {
     # ── Tata Group ────────────────────────────────────────────────────────────
-    "tata motors":          "TMPV.NS",
-    "tatamotors":           "TMPV.NS",
-    "tata motor":           "TMPV.NS",
+    "tmpv":                      "TMPV.NS",
+    "tata motors passenger vehicles": "TMPV.NS",
+    "tata pv":                   "TMPV.NS",
+    "tmcv":                      "TMCV.NS",
+    "tata motors commercial vehicles": "TMCV.NS",
+    "tata cv":                   "TMCV.NS",
     "tata consultancy":     "TCS.NS",
     "tata consultancy services": "TCS.NS",
     "tcs":                  "TCS.NS",
@@ -35,9 +38,9 @@ POPULAR_STOCKS = {
     "hcl":                  "HCLTECH.NS",
     "hcl tech":             "HCLTECH.NS",
     "hcl technologies":     "HCLTECH.NS",
-    "ltimindtree":          "LTIM.NS",
-    "lti mindtree":         "LTIM.NS",
-    "lti":                  "LTIM.NS",
+    "ltimindtree":          "LTM.NS",
+    "lti mindtree":         "LTM.NS",
+    "lti":                  "LTM.NS",
     "mphasis":              "MPHASIS.NS",
     "persistent":           "PERSISTENT.NS",
     "persistent systems":   "PERSISTENT.NS",
@@ -188,7 +191,7 @@ POPULAR_STOCKS = {
     "irfc":                 "IRFC.NS",
     "indian railway finance": "IRFC.NS",
     "irb":                  "IRB.NS",
-    "gmr":                  "GMRINFRA.NS",
+    "gmr":                  "GMRAIRPORT.NS",
     # ── Adani Group ──────────────────────────────────────────────────────────
     "adani port":           "ADANIPORTS.NS",   # singular
     "adani ports":          "ADANIPORTS.NS",   # plural
@@ -330,13 +333,14 @@ POPULAR_STOCKS = {
 
 # Reverse map: ticker → friendly display name
 TICKER_NAME_MAP = {
-    "TMPV.NS":       "Tata Motors",
+    "TMPV.NS":       "Tata Motors PV",
+    "TMCV.NS":       "Tata Motors CV",
     "TCS.NS":        "TCS",
     "INFY.NS":       "Infosys",
     "WIPRO.NS":      "Wipro",
     "TECHM.NS":      "Tech Mahindra",
     "HCLTECH.NS":    "HCL Technologies",
-    "LTIM.NS":       "LTIMindtree",
+    "LTM.NS":            "LTIMindtree",
     "MPHASIS.NS":    "Mphasis",
     "PERSISTENT.NS": "Persistent Systems",
     "COFORGE.NS":    "Coforge",
@@ -408,7 +412,7 @@ TICKER_NAME_MAP = {
     "BEL.NS":        "Bharat Electronics",
     "IRFC.NS":       "IRFC",
     "IRB.NS":        "IRB Infrastructure",
-    "GMRINFRA.NS":   "GMR Infrastructure",
+    "GMRAIRPORT.NS":  "GMR Airports Infrastructure",
     "ADANIPORTS.NS": "Adani Ports & SEZ",
     "ADANIENT.NS":   "Adani Enterprises",
     "ADANIGREEN.NS": "Adani Green Energy",
@@ -629,16 +633,16 @@ def fetch_stock_price(ticker: str) -> pd.DataFrame:
 
 def fetch_news_headlines(ticker: str, company_name: str) -> list[str]:
     """
-    Fetches news headlines mentioning the stock from the last 48 hours.
+    Fetches news headlines mentioning the stock from the last 5 days.
     Primary: NewsAPI
     Fallback: Yahoo Finance RSS feed (no API key needed)
     """
     headlines = []
     
-    # Calculate timestamps for last 48 hours
+    # Calculate timestamps for last 5 days
     now = datetime.datetime.now()
-    two_days_ago = now - datetime.timedelta(hours=48)
-    from_date_str = two_days_ago.strftime("%Y-%m-%d")
+    five_days_ago = now - datetime.timedelta(days=5)
+    from_date_str = five_days_ago.strftime("%Y-%m-%d")
 
     news_api_key = os.getenv("NEWS_API_KEY")
     
@@ -654,7 +658,7 @@ def fetch_news_headlines(ticker: str, company_name: str) -> list[str]:
                 f"from={from_date_str}&"
                 f"language=en&"
                 f"sortBy=relevance&"
-                f"pageSize=30&"
+                f"pageSize=50&"
                 f"apiKey={news_api_key}"
             )
             response = requests.get(url, timeout=5)
@@ -689,44 +693,76 @@ def fetch_news_headlines(ticker: str, company_name: str) -> list[str]:
             print(f"[Error] Failed to fetch news from RSS fallback: {e}")
             
     # Remove duplicate headlines and return
-    unique_headlines = list(set(headlines))[:30]
+    unique_headlines = list(set(headlines))[:50]
     return unique_headlines
 
 def fetch_fundamentals(ticker: str) -> dict:
     """
     Fetches key fundamental valuation metrics for a stock ticker from yfinance.
     Returns a dictionary of metrics, or empty/None values if not found.
+    Falls back to forwardPE when trailingPE is missing (e.g. negative earnings).
     """
     import yfinance as yf
     print(f"[*] Fetching fundamental valuation data for {ticker}...")
     try:
         stock = yf.Ticker(ticker)
         info = stock.info
-        
+
+        # --- P/E Ratio: trailing → forward → manual (price/EPS) ---
+        trailing_pe = info.get("trailingPE")
+        forward_pe  = info.get("forwardPE")
+        trailing_eps = info.get("trailingEps")
+        current_price = info.get("currentPrice") or info.get("previousClose")
+
+        pe_ratio = None
+        pe_type  = "Trailing"   # label shown in UI
+
+        if trailing_pe is not None and trailing_pe > 0:
+            pe_ratio = float(trailing_pe)
+            pe_type  = "Trailing"
+        elif forward_pe is not None and forward_pe > 0:
+            pe_ratio = float(forward_pe)
+            pe_type  = "Forward"
+        elif trailing_eps is not None and trailing_eps > 0 and current_price:
+            pe_ratio = float(current_price) / float(trailing_eps)
+            pe_type  = "Computed"
+
+        # --- ROE ---
         roe = info.get("returnOnEquity")
         if roe is not None:
-            roe = float(roe) * 100  # convert to percentage
-            
+            roe = float(roe) * 100   # convert fraction → %
+
+        # --- Market Cap: rupees → crores ---
         mcap = info.get("marketCap")
         if mcap is not None:
-            mcap = float(mcap) / 1e7  # convert to Rs. Crores (1 Crore = 10,000,000)
-            
+            mcap = float(mcap) / 1e7   # 1 Crore = 10,000,000
+
+        # --- EPS (raw, for display) ---
+        eps = trailing_eps
+        if eps is not None:
+            eps = float(eps)
+
         return {
-            "PE_Ratio": info.get("trailingPE"),
-            "PB_Ratio": info.get("priceToBook"),
+            "PE_Ratio":       pe_ratio,
+            "PE_Type":        pe_type,           # "Trailing" / "Forward" / "Computed"
+            "PB_Ratio":       info.get("priceToBook"),
             "Debt_to_Equity": info.get("debtToEquity"),
-            "ROE": roe,
-            "Market_Cap": mcap
+            "ROE":            roe,
+            "Market_Cap":     mcap,
+            "EPS":            eps,
         }
     except Exception as e:
         print(f"[Warning] Failed to fetch fundamental data: {e}")
         return {
-            "PE_Ratio": None,
-            "PB_Ratio": None,
+            "PE_Ratio":       None,
+            "PE_Type":        "Trailing",
+            "PB_Ratio":       None,
             "Debt_to_Equity": None,
-            "ROE": None,
-            "Market_Cap": None
+            "ROE":            None,
+            "Market_Cap":     None,
+            "EPS":            None,
         }
+
 def fetch_global_macro_data(start_date: str, end_date: str) -> pd.DataFrame:
     """
     Downloads historical S&P 500 return, Crude Oil return, and USD/INR exchange rate return.

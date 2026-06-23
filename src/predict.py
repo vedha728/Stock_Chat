@@ -22,8 +22,12 @@ def predict_stock_action(feature_row: pd.DataFrame) -> dict:
 
     model = joblib.load(model_path)
 
-    probs      = model.predict_proba(feature_row)[0]   # [sell_prob, hold_prob, buy_prob]
-    pred_class = model.predict(feature_row)[0]          # 0=SELL, 1=HOLD, 2=BUY
+    # Dynamically align features to match the model's training features
+    expected_features = model.get_booster().feature_names
+    feature_row_aligned = feature_row[expected_features]
+
+    probs      = model.predict_proba(feature_row_aligned)[0]   # [sell_prob, hold_prob, buy_prob]
+    pred_class = model.predict(feature_row_aligned)[0]          # 0=SELL, 1=HOLD, 2=BUY
     class_map  = {0: "SELL", 1: "HOLD", 2: "BUY"}
 
     prediction = class_map[pred_class]
@@ -49,7 +53,7 @@ def predict_stock_action(feature_row: pd.DataFrame) -> dict:
         )
         prediction     = "HOLD"
         low_confidence = True
-        print(f"[*] Threshold filter: {override_reason}")
+        # print(f"[*] Threshold filter: {override_reason}")
 
     return {
         "Recommendation": prediction,
@@ -67,16 +71,16 @@ def predict_stock_action(feature_row: pd.DataFrame) -> dict:
 
 
 if __name__ == "__main__":
-    # Test prediction with mock features
+    # Test prediction with mock features (18 features — updated to match current model)
     feature_cols = [
-        'RSI', 'MACD_Hist', 'MACD_Crossover', 
-        'Price_Above_MA50', 'Price_Above_MA200', 'Golden_Cross', 
+        'RSI', 'MACD_Hist', 'MACD_Crossover',
+        'Price_Above_MA50', 'Price_Above_MA200', 'Golden_Cross',
         'Volume_Ratio', 'Sentiment_Score', 'Positive_Headlines', 'Negative_Headlines',
-        'FII_10d_Net', 'DII_10d_Net', 'FII_Trend', 'DII_Trend', 
-        'Divergence_Flag', 'Multi_Timeframe_Alignment',
-        'SP500_Return', 'Crude_Return', 'USD_INR_Return'
+        'Multi_Timeframe_Alignment',
+        'SP500_Return', 'Crude_Return', 'USD_INR_Return',
+        'RSI_Slope', 'Price_Pct_5d', 'Price_Pct_20d', 'Volatility_10d'
     ]
-    
+
     # Mock bullish row
     mock_row = pd.DataFrame([{
         'RSI': 35.0,
@@ -86,20 +90,19 @@ if __name__ == "__main__":
         'Price_Above_MA200': 1,
         'Golden_Cross': 1,
         'Volume_Ratio': 1.8,
-        'Sentiment_Score': 0.65,
-        'Positive_Headlines': 8,
-        'Negative_Headlines': 1,
-        'FII_10d_Net': 1500.0,
-        'DII_10d_Net': 800.0,
-        'FII_Trend': 1,
-        'DII_Trend': 1,
-        'Divergence_Flag': 0,
+        'Sentiment_Score': 0.05,
+        'Positive_Headlines': 4,
+        'Negative_Headlines': 3,
         'Multi_Timeframe_Alignment': 1,
         'SP500_Return': 0.005,
         'Crude_Return': -0.01,
-        'USD_INR_Return': 0.002
+        'USD_INR_Return': 0.002,
+        'RSI_Slope': 5.2,
+        'Price_Pct_5d': 1.5,
+        'Price_Pct_20d': 3.2,
+        'Volatility_10d': 1.1
     }])
-    
+
     try:
         res = predict_stock_action(mock_row)
         print("Test Prediction:", res)

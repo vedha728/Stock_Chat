@@ -18,59 +18,47 @@ def calculate_multi_timeframe_alignment(price_above_50: int, price_above_200: in
 
 def generate_historical_sentiment_proxy(price_df: pd.DataFrame) -> pd.DataFrame:
     """
-    Generates a realistic historical news sentiment proxy based on daily price changes.
-    Used for 2-year training data since historical NewsAPI news is unavailable.
-    - If daily return > 1.5%: positive sentiment score and high positive headlines count.
-    - If daily return < -1.5%: negative sentiment score and high negative headlines count.
-    - Otherwise: neutral sentiment score and balanced headlines.
-    Adds gaussian noise to avoid perfect correlations (so the model does not cheat).
+    Generates a neutral, price-independent sentiment proxy for training data.
+    Used because real historical news data (NewsAPI) is unavailable for past years.
+
+    FIX (Option C — Neutral Random Noise):
+    Previously, sentiment was derived directly from daily price returns
+    (price up → positive sentiment, price down → negative sentiment).
+    This caused circular data leakage — the model was learning price direction
+    disguised as sentiment, inflating training accuracy artificially.
+
+    Now: sentiment values are randomly sampled from a narrow neutral distribution,
+    completely uncorrelated to price. This means:
+      - No fake patterns are learned during training
+      - The feature slot stays open (same 23-feature architecture)
+      - At inference, real FinBERT scores from NewsAPI will stand out as
+        genuine signal against this neutral baseline, and the model
+        will respond to them meaningfully.
+
+    Distribution used:
+      Sentiment_Score    : Normal(mean=0, std=0.15), clamped to [-0.4, 0.4]
+      Positive_Headlines : Uniform integer [1, 6]
+      Negative_Headlines : Uniform integer [1, 6]
+    These ranges reflect a genuinely uncertain, noisy news environment —
+    not one that always agrees with price direction.
     """
     df = price_df.copy()
     np.random.seed(42)
-    
-    # Calculate daily percent change
-    df['Return'] = df['Close'].pct_change()
-    
-    sentiment_scores = []
-    pos_counts = []
-    neg_counts = []
-    
-    for ret in df['Return']:
-        if pd.isna(ret):
-            sentiment_scores.append(0.0)
-            pos_counts.append(0)
-            neg_counts.append(0)
-            continue
-            
-        # Add random noise to returns to prevent absolute correlation
-        noise = np.random.normal(0, 0.005)
-        noisy_return = ret + noise
-        
-        if noisy_return > 0.015:
-            # Bullish day
-            score = np.random.uniform(0.3, 0.8)
-            pos = int(np.random.randint(5, 15))
-            neg = int(np.random.randint(0, 3))
-        elif noisy_return < -0.015:
-            # Bearish day
-            score = np.random.uniform(-0.8, -0.3)
-            pos = int(np.random.randint(0, 3))
-            neg = int(np.random.randint(5, 15))
-        else:
-            # Neutral day
-            score = np.random.uniform(-0.2, 0.2)
-            pos = int(np.random.randint(1, 5))
-            neg = int(np.random.randint(1, 5))
-            
-        sentiment_scores.append(score)
-        pos_counts.append(pos)
-        neg_counts.append(neg)
-        
-    df['Sentiment_Score'] = sentiment_scores
+    n = len(df)
+
+    # Random neutral sentiment scores — no connection to price at all
+    raw_scores = np.random.normal(loc=0.0, scale=0.15, size=n)
+    sentiment_scores = np.clip(raw_scores, -0.4, 0.4).tolist()
+
+    # Random headline counts — balanced, no directional bias
+    pos_counts = np.random.randint(1, 7, size=n).tolist()   # 1 to 6
+    neg_counts = np.random.randint(1, 7, size=n).tolist()   # 1 to 6
+
+    df['Sentiment_Score']    = sentiment_scores
     df['Positive_Headlines'] = pos_counts
     df['Negative_Headlines'] = neg_counts
-    
-    return df.drop(columns=['Return'])
+
+    return df
 
 
 def compile_feature_matrix(price_df: pd.DataFrame, fii_dii_df: pd.DataFrame, macro_df: pd.DataFrame = None, is_training: bool = False) -> pd.DataFrame:
@@ -143,7 +131,7 @@ def compile_feature_matrix(price_df: pd.DataFrame, fii_dii_df: pd.DataFrame, mac
     merged_df['DII_Trend'] = dii_trends
     merged_df['Divergence_Flag'] = div_flags
 
-    # 4. Multi-Timeframe Bulkish Alignment
+    # 4. Multi-Timeframe Bullish Alignment
     alignments = []
     for idx in range(len(merged_df)):
         align = calculate_multi_timeframe_alignment(
@@ -155,14 +143,26 @@ def compile_feature_matrix(price_df: pd.DataFrame, fii_dii_df: pd.DataFrame, mac
         alignments.append(align)
     merged_df['Multi_Timeframe_Alignment'] = alignments
 
-    # Define features to output
+    # 5. Rolling Window Features (Issue #3 fix — sequence context for XGBoost)
+    # RSI_Slope: direction of RSI momentum (positive = RSI recovering, negative = RSI weakening)
+    merged_df['RSI_Slope'] = merged_df['RSI'].diff(5).fillna(0.0)
+
+    # Price % change over 5 and 20 trading days (short and medium term momentum)
+    merged_df['Price_Pct_5d']  = merged_df['Close'].pct_change(5).fillna(0.0)  * 100
+    merged_df['Price_Pct_20d'] = merged_df['Close'].pct_change(20).fillna(0.0) * 100
+
+    # 10-day rolling volatility: std of daily returns (measures risk/uncertainty)
+    daily_returns = merged_df['Close'].pct_change()
+    merged_df['Volatility_10d'] = daily_returns.rolling(window=10).std().fillna(0.0) * 100
+
+    # Define features to output (18 total: 14 original + 4 new rolling features)
     features = [
-        'RSI', 'MACD_Hist', 'MACD_Crossover', 
-        'Price_Above_MA50', 'Price_Above_MA200', 'Golden_Cross', 
+        'RSI', 'MACD_Hist', 'MACD_Crossover',
+        'Price_Above_MA50', 'Price_Above_MA200', 'Golden_Cross',
         'Volume_Ratio', 'Sentiment_Score', 'Positive_Headlines', 'Negative_Headlines',
-        'FII_10d_Net', 'DII_10d_Net', 'FII_Trend', 'DII_Trend', 
-        'Divergence_Flag', 'Multi_Timeframe_Alignment',
-        'SP500_Return', 'Crude_Return', 'USD_INR_Return'
+        'Multi_Timeframe_Alignment',
+        'SP500_Return', 'Crude_Return', 'USD_INR_Return',
+        'RSI_Slope', 'Price_Pct_5d', 'Price_Pct_20d', 'Volatility_10d'
     ]
     
     # If training, keep 'Date', 'Close', features, and label (which will be added later)
@@ -175,42 +175,70 @@ def compile_feature_matrix(price_df: pd.DataFrame, fii_dii_df: pd.DataFrame, mac
     return merged_df[final_cols]
 
 
-def prepare_inference_row(latest_price_row: pd.Series, fii_dii_summary: dict, sentiment_summary: tuple[float, int, int], macro_returns: tuple[float, float, float]) -> pd.DataFrame:
+def prepare_inference_row(
+    price_indicators_df: pd.DataFrame,
+    fii_dii_summary: dict,
+    sentiment_summary: tuple,
+    macro_returns: tuple
+) -> pd.DataFrame:
     """
-    Constructs a single 19-feature row for real-time model inference.
+    Constructs a single 23-feature row for real-time model inference.
+    Accepts the full price_indicators_df (not just latest row) so that
+    rolling window features (RSI_Slope, Price_Pct_5d, Price_Pct_20d,
+    Volatility_10d) can be accurately computed from recent history.
     """
     sent_score, pos_count, neg_count = sentiment_summary
     sp500_ret, crude_ret, usdinr_ret = macro_returns
-    
+
+    # Use the last row for point-in-time values
+    latest = price_indicators_df.iloc[-1]
+
     # Compute multi-timeframe alignment
     mt_alignment = calculate_multi_timeframe_alignment(
-        int(latest_price_row['Price_Above_MA50']),
-        int(latest_price_row['Price_Above_MA200']),
-        int(latest_price_row['Golden_Cross']),
-        float(latest_price_row['MACD_Hist'])
+        int(latest['Price_Above_MA50']),
+        int(latest['Price_Above_MA200']),
+        int(latest['Golden_Cross']),
+        float(latest['MACD_Hist'])
     )
-    
-    # Construct dict of exactly 19 features matching training dataset
+
+    # ── Rolling window features (Issue #3) ───────────────────────────────
+    # RSI_Slope: RSI today minus RSI 5 days ago — captures momentum direction
+    rsi_series = price_indicators_df['RSI']
+    rsi_slope = float(rsi_series.iloc[-1] - rsi_series.iloc[-6]) if len(rsi_series) >= 6 else 0.0
+
+    # Price % change over 5 and 20 trading days
+    close_series = price_indicators_df['Close']
+    price_pct_5d  = float((close_series.iloc[-1] / close_series.iloc[-6]  - 1) * 100) if len(close_series) >= 6  else 0.0
+    price_pct_20d = float((close_series.iloc[-1] / close_series.iloc[-21] - 1) * 100) if len(close_series) >= 21 else 0.0
+
+    # 10-day rolling volatility of daily returns
+    if len(close_series) >= 11:
+        daily_rets = close_series.pct_change().dropna()
+        volatility_10d = float(daily_rets.iloc[-10:].std() * 100)
+    else:
+        volatility_10d = 0.0
+    # ─────────────────────────────────────────────────────────────────────
+
+    # Construct dict of exactly 18 features matching training dataset
     feature_row = {
-        'RSI': float(latest_price_row['RSI']),
-        'MACD_Hist': float(latest_price_row['MACD_Hist']),
-        'MACD_Crossover': int(latest_price_row['MACD_Crossover']),
-        'Price_Above_MA50': int(latest_price_row['Price_Above_MA50']),
-        'Price_Above_MA200': int(latest_price_row['Price_Above_MA200']),
-        'Golden_Cross': int(latest_price_row['Golden_Cross']),
-        'Volume_Ratio': float(latest_price_row['Volume_Ratio']),
-        'Sentiment_Score': float(sent_score),
-        'Positive_Headlines': int(pos_count),
-        'Negative_Headlines': int(neg_count),
-        'FII_10d_Net': float(fii_dii_summary['FII_10d_Net']),
-        'DII_10d_Net': float(fii_dii_summary['DII_10d_Net']),
-        'FII_Trend': int(fii_dii_summary['FII_Trend']),
-        'DII_Trend': int(fii_dii_summary['DII_Trend']),
-        'Divergence_Flag': int(fii_dii_summary['Divergence_Flag']),
-        'Multi_Timeframe_Alignment': int(mt_alignment),
-        'SP500_Return': float(sp500_ret),
-        'Crude_Return': float(crude_ret),
-        'USD_INR_Return': float(usdinr_ret)
+        'RSI':                      float(latest['RSI']),
+        'MACD_Hist':                float(latest['MACD_Hist']),
+        'MACD_Crossover':           int(latest['MACD_Crossover']),
+        'Price_Above_MA50':         int(latest['Price_Above_MA50']),
+        'Price_Above_MA200':        int(latest['Price_Above_MA200']),
+        'Golden_Cross':             int(latest['Golden_Cross']),
+        'Volume_Ratio':             float(latest['Volume_Ratio']),
+        'Sentiment_Score':          float(sent_score),
+        'Positive_Headlines':       int(pos_count),
+        'Negative_Headlines':       int(neg_count),
+        'Multi_Timeframe_Alignment':int(mt_alignment),
+        'SP500_Return':             float(sp500_ret),
+        'Crude_Return':             float(crude_ret),
+        'USD_INR_Return':           float(usdinr_ret),
+        'RSI_Slope':                rsi_slope,
+        'Price_Pct_5d':             price_pct_5d,
+        'Price_Pct_20d':            price_pct_20d,
+        'Volatility_10d':           volatility_10d,
     }
-    
+
     return pd.DataFrame([feature_row])

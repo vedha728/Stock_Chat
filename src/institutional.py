@@ -17,7 +17,7 @@ def fetch_latest_fii_dii() -> pd.DataFrame:
       Tier 3 — Simulation fallback (if both sources are unavailable)
     Returns: pd.DataFrame with columns ['Date', 'FII_Net', 'DII_Net']
     """
-    print("[*] Fetching latest FII/DII data...")
+    # print("[*] Fetching latest FII/DII data...")
     cache_path = "data/fii_dii/live_fii_dii_cache.csv"
     os.makedirs("data/fii_dii", exist_ok=True)
 
@@ -25,7 +25,7 @@ def fetch_latest_fii_dii() -> pd.DataFrame:
     today_record = _fetch_nse_today()
     if today_record:
         _append_to_rolling_cache(today_record, cache_path)
-        print(f"[+] NSE India: Real FII/DII for {today_record['Date']} fetched.")
+        # print(f"[+] NSE India: Real FII/DII for {today_record['Date']} fetched.")
 
     # Load cache if it exists
     cache_df = pd.DataFrame(columns=["Date", "FII_Net", "DII_Net"])
@@ -36,7 +36,7 @@ def fetch_latest_fii_dii() -> pd.DataFrame:
 
     # If cache has fewer than 10 real days, try to backfill using Moneycontrol
     if len(cache_df) < 10:
-        print("[*] Cache has fewer than 10 days of real data. Backfilling via Moneycontrol...")
+        # print("[*] Cache has fewer than 10 days of real data. Backfilling via Moneycontrol...")
         mc_df = _fetch_moneycontrol()
         if mc_df is not None and len(mc_df) >= 3:
             mc_df["Date"] = mc_df["Date"].astype(str)
@@ -45,7 +45,7 @@ def fetch_latest_fii_dii() -> pd.DataFrame:
             combined = combined.drop_duplicates(subset="Date").sort_values("Date")
             combined.to_csv(cache_path, index=False)
             cache_df = combined
-            print(f"[+] Moneycontrol: Successfully backfilled. Cache now has {len(cache_df)} real days.")
+            # print(f"[+] Moneycontrol: Successfully backfilled. Cache now has {len(cache_df)} real days.")
         else:
             print("[Warning] Moneycontrol backfill failed or returned empty.")
 
@@ -209,28 +209,48 @@ def _simulate_fii_dii(days: int = 10) -> pd.DataFrame:
 
 
 
-def generate_historical_fii_dii_csv(start_date: str, end_date: str) -> str:
+def generate_historical_fii_dii_csv(start_date: str, end_date: str, output_path: str = None) -> str:
     """
     Generates historical FII/DII net flow daily data for training.
     Always regenerates to match the requested date range.
-    Correlates flows with market direction to make data realistic.
-    Saves to: data/fii_dii/historical_fii_dii.csv
+    Saves to: data/fii_dii/historical_fii_dii.csv (default) or output_path if provided.
+
+    FIX (Issue #2 — Neutral Random FII/DII):
+    Previously, flows were correlated with a simulated market return proxy
+    (positive market day → FII buys, negative → FII sells). This created
+    circular leakage similar to Issue #1 — the model learned market direction
+    disguised as institutional flow signal.
+
+    Now: FII and DII flows are sampled independently from realistic
+    distributions based on actual NSE historical statistics, with NO
+    correlation to any price or market direction signal.
+
+    Distributions used (based on observed NSE FII/DII patterns):
+      FII_Net : Normal(mean=200,  std=1500) Cr/day  — net buyer on average, high variance
+      DII_Net : Normal(mean=800,  std=700)  Cr/day  — consistent domestic buying, lower variance
+    These are statistically plausible but contain no directional market signal.
+
+    Args:
+        start_date:  Start of date range (YYYY-MM-DD)
+        end_date:    End of date range (YYYY-MM-DD)
+        output_path: Optional custom path to save CSV. Defaults to
+                     data/fii_dii/historical_fii_dii.csv (training file).
+                     Pass a different path (e.g. for backtest windows) to avoid
+                     overwriting the main training FII/DII file.
     """
     os.makedirs("data/fii_dii", exist_ok=True)
-    csv_path = "data/fii_dii/historical_fii_dii.csv"
+    csv_path = output_path if output_path else "data/fii_dii/historical_fii_dii.csv"
 
     print(f"[*] Generating historical FII/DII dataset ({start_date} to {end_date})...")
 
     # Create date range (business days only)
     dates = pd.date_range(start=start_date, end=end_date, freq='B')
+    n = len(dates)
 
-    # Simulate a "market return" (Nifty daily change proxy)
-    np.random.seed(100)
-    market_returns = np.random.normal(loc=0.0005, scale=0.009, size=len(dates))
-
-    # FII and DII flows are correlated with market returns
-    fii_net = 150000 * market_returns + np.random.normal(loc=-100, scale=1200, size=len(dates))
-    dii_net = -50000 * market_returns + np.random.normal(loc=800,  scale=800,  size=len(dates))
+    # Neutral random flows — no correlation to market direction
+    np.random.seed(42)
+    fii_net = np.random.normal(loc=200,  scale=1500, size=n)   # FII: net buyer, high volatility
+    dii_net = np.random.normal(loc=800,  scale=700,  size=n)   # DII: consistent buyer, lower vol
 
     df = pd.DataFrame({
         "Date":    dates.date,
@@ -239,8 +259,9 @@ def generate_historical_fii_dii_csv(start_date: str, end_date: str) -> str:
     })
 
     df.to_csv(csv_path, index=False)
-    print(f"[+] Saved {len(df)} rows of FII/DII data to {csv_path}")
+    print(f"[+] Saved {len(df)} rows of neutral FII/DII training data to {csv_path}")
     return csv_path
+
 
 
 def analyze_institutional_signals(fii_10d: list[float], dii_10d: list[float]) -> dict:

@@ -25,6 +25,20 @@ def clean_markdown(text: str) -> str:
     return text.strip()
 
 
+def _get_api_key(attempt_index: int = 0) -> str:
+    """
+    Returns the API key to use. If GEMINI_API_KEY contains comma-separated values,
+    rotates through them using attempt_index % count.
+    """
+    raw_key = os.getenv("GEMINI_API_KEY", "")
+    if not raw_key:
+        return ""
+    keys = [k.strip() for k in raw_key.split(",") if k.strip()]
+    if not keys:
+        return ""
+    return keys[attempt_index % len(keys)]
+
+
 def generate_beginner_explanation(
     ticker: str,
     company_name: str,
@@ -34,76 +48,146 @@ def generate_beginner_explanation(
     sentiment_score: float,
     headlines: list[str],
     fii_dii_summary: dict,
-    fundamentals: dict = None
-) -> str:
+    fundamentals: dict = None,
+    user_input: str = ""
+) -> tuple[str, str]:
     """
     Connects to Google Gemini 2.5 Flash to translate raw financial metrics,
-    ML predictions, and fundamental valuation metrics into an easy-to-understand
-    response for beginners, reconciling any contradictory signals.
+    ML predictions, and fundamental valuation metrics into two separate segments:
+    1. Model Analysis (Factors list + Strategic advice)
+    2. Beginner Explanation (Paragraph format)
+    Reconciles any contradictory signals and adapts to buy/sell user intent.
     """
-    # 1. Calculate Entry Zone and Safety Price mathematically in Python
     recommendation = ml_result["Recommendation"]
-    # If overridden, use the original signal details to explain the original logic
     is_overridden = ml_result.get("Low_Confidence", False)
     orig_rec = ml_result.get("Original_Recommendation", recommendation)
     orig_conf = ml_result.get("Original_Confidence", ml_result["Confidence"]) * 100
     confidence = ml_result["Confidence"] * 100
+    buy_pct = ml_result.get("Breakdown", {}).get("BUY", 0.0) * 100
     
+    # Calculate entry zone and safety stop loss
     if recommendation == "BUY":
         entry_min = current_price * 0.995
         entry_max = current_price * 1.01
         entry_zone = f"₹{entry_min:.1f} – ₹{entry_max:.1f}"
-        stop_loss = f"₹{current_price * 0.95:.1f} (Safety price)"
+        stop_loss = f"₹{current_price * 0.95:.1f}"
     elif recommendation == "SELL":
         entry_zone = "N/A (Avoid Buying)"
-        stop_loss = f"₹{current_price * 1.05:.1f} (Safety price)"
+        stop_loss = f"₹{current_price * 1.05:.1f}"
     else: # HOLD
         entry_zone = "Hold current shares. Do not add new positions."
-        stop_loss = f"₹{current_price * 0.95:.1f} (Safety price)"
+        stop_loss = f"₹{current_price * 0.95:.1f}"
+
+    # Check query type (sell vs buy)
+    asked_sell = False
+    if user_input:
+        q = user_input.lower()
+        asked_sell = any(w in q for w in ["sell", "exit", "quit", "offload"])
+
+    is_near_buy = (recommendation == "HOLD" and is_overridden and orig_rec == "BUY" and 50.0 <= buy_pct <= 54.9)
 
     # Get API key
-    api_key = os.getenv("GEMINI_API_KEY")
+    raw_key = os.getenv("GEMINI_API_KEY", "")
     
     # 2. Check if API key is missing or default placeholder
-    if not api_key or "PLACEHOLDER" in api_key:
+    if not raw_key or "PLACEHOLDER" in raw_key:
         print("[*] Gemini API key not found. Using local template explainer.")
         
-        # Prepare a highly detailed local fallback explanation
+        # Prepare local fallback Model Analysis (Section A)
+        fav_factors = []
+        agt_factors = []
+        
+        if recommendation == "BUY":
+            fav_factors.append("  • [Moving Averages] Price is above its 50-day average price.")
+            fav_factors.append("  • [DII] Institutional players are showing buying interest.")
+            fav_factors.append("  • [News] News sentiment is generally positive.")
+            agt_factors.append("  • [RSI] Short-term momentum shows signs of getting overbought.")
+        elif recommendation == "SELL":
+            fav_factors.append("  • [Fundamentals] P/E ratio is high relative to historical earnings.")
+            agt_factors.append("  • [Moving Averages] Price trades below long-term moving averages.")
+            agt_factors.append("  • [FII] Foreign institutional funds are withdrawing capital.")
+            agt_factors.append("  • [News] Media sentiment is currently cautious.")
+        else: # HOLD
+            fav_factors.append("  • [RSI] Momentum indicator is in the neutral zone.")
+            if is_near_buy:
+                fav_factors.append("  • [DII] Domestic big investors are supporting the price.")
+            else:
+                fav_factors.append("  • [News] Media sentiment is neutral.")
+            agt_factors.append("  • [Moving Averages] Price is trading below short-term averages.")
+            agt_factors.append("  • [FII] Foreign investors are reducing their exposure.")
+            
+        fav_text = "\n".join(fav_factors)
+        agt_text = "\n".join(agt_factors)
+        
+        if asked_sell:
+            action_str = "Do not sell. Hold current shares."
+            if is_near_buy:
+                action_str += " (WATCH CLOSELY: Very close to buy zone)."
+        else:
+            action_str = "Avoid buying new shares. Hold current shares."
+            if is_near_buy:
+                action_str += " (WATCH CLOSELY: Very close to buy zone)."
+                
+        if recommendation == "BUY":
+            action_str = "Buy shares."
+        elif recommendation == "SELL":
+            action_str = "Sell shares."
+            
+        fallback_model_analysis = (
+            f"Factors Favouring {'Hold / against Sell' if asked_sell else 'Buy'} (+):\n"
+            f"{fav_text}\n\n"
+            f"Factors {'Favouring Sell / Weaknesses' if asked_sell else 'Against Buy / Favouring Hold'} (-):\n"
+            f"{agt_text}\n\n"
+            f"Strategic Advice:\n"
+            f"  • Action: {action_str}\n"
+            f"  • Stop Loss (Safety Net): {stop_loss} (Current price: ₹{current_price:,.2f}) — "
+            f"Sell any shares you hold if price falls below this to limit losses."
+        )
+        
+        # Prepare local fallback Beginner Explanation (Section B)
         reasons = []
         if recommendation == "BUY":
-            reasons.append(f"The stock price is in an uptrend (currently above its 50-day average price of ₹{technical_summary.get('MA50', current_price*0.95):.1f}).")
-            reasons.append("Institutional players (Foreign and Domestic) are buying the stock, which gives strong capital backing.")
-            reasons.append(f"Recent news sentiment is positive (Score: {sentiment_score:.2f}) with support from public media.")
+            reasons.append(f"Price is above its 50-day average price of Rs.{technical_summary.get('MA50', current_price*0.95):.1f}.")
+            reasons.append("Institutional players are buying the stock, which gives strong capital backing.")
+            reasons.append(f"Recent news sentiment is positive (Score: {sentiment_score:.2f}).")
         elif recommendation == "SELL":
-            reasons.append("The stock shows technical weakness, trading below its moving average lines.")
-            reasons.append("Institutional funds are withdrawing capital, indicating 'smart money' is leaving.")
-            reasons.append("News sentiment is neutral to negative, creating overhead pressure.")
+            reasons.append("The stock shows technical weakness, trading below its moving averages.")
+            reasons.append("Institutional funds are withdrawing capital, indicating smart money is leaving.")
+            reasons.append("News sentiment is neutral to negative, creating pressure.")
         else:
-            reasons.append("Technical indicators (like RSI) are in the neutral 40-60 zone, indicating no clear direction.")
+            reasons.append("Technical indicators like RSI are in the neutral 40-60 zone, indicating no clear direction.")
             reasons.append("FII and DII buying activity is mixed or diverging, showing indecision among big players.")
             reasons.append("No major news catalyst has occurred in the last 48 hours to drive the price.")
             
         fund_text = ""
         if fundamentals and fundamentals.get("PE_Ratio") is not None:
-            fund_text = f"\nFundamentals: P/E ratio is {fundamentals['PE_Ratio']:.1f}, ROE is {fundamentals['ROE']:.1f}%, and Debt/Equity is {fundamentals['Debt_to_Equity']:.1f}%. "
+            fund_text = f"\nFundamentals: P/E ratio is {fundamentals['PE_Ratio']:.1f}, ROE is {fundamentals['ROE']:.1f}%, and Debt/Equity is {fundamentals['Debt_to_Equity']:.1f}%."
             
-        fallback_text = (
-            f"Why {recommendation}:\n"
-            f"1. {reasons[0]}\n"
-            f"2. {reasons[1]}\n"
-            f"3. {reasons[2]}\n"
-            f"{fund_text}\n"
-            f"Entry Zone: {entry_zone}\n"
-            f"Safety Net Price: {stop_loss}\n\n"
-            f"Recommendation: {recommendation} (Confidence: {confidence:.1f}%)\n"
-            f"Disclaimer: Educational tool only. Always do your own research before trading."
+        rec_text = "HOLD your shares" if asked_sell else "DO NOT BUY"
+        if recommendation == "BUY":
+            rec_text = "BUY"
+        elif recommendation == "SELL":
+            rec_text = "SELL"
+            
+        fallback_beginner_explanation = (
+            f"Our Recommendation:\n"
+            f"The signals are unclear, so our suggestion is to {rec_text}.\n\n"
+            f"Why:\n"
+            f"1. Price Movement: {reasons[0]}\n"
+            f"2. Big Investors: {reasons[1]}\n"
+            f"3. News: {reasons[2]}\n"
+            f"4. Company Health: {fund_text if fund_text else 'The company has stable financials.'}\n\n"
+            f"What You Should Do:\n"
+            f"Action: {action_str}\n"
+            f"Safety Net Price: {stop_loss} — Sell if price falls below this to limit losses.\n\n"
+            f"Important:\n"
+            f"Educational tool only. Research before investing."
         )
-        return fallback_text
+        
+        return fallback_model_analysis, fallback_beginner_explanation
 
     # 3. Call Gemini API
     try:
-        client = genai.Client(api_key=api_key)
-        
         # Format fundamentals block
         fund_block = "N/A"
         if fundamentals:
@@ -115,16 +199,56 @@ def generate_beginner_explanation(
                 f"Market Cap (₹ Crores): {fundamentals.get('Market_Cap')}\n"
             )
             
+        # Determine query intent instructions
+        if asked_sell:
+            query_instruction = (
+                "The user asked about SELLING this stock (e.g. 'should I sell?'). "
+                "You must frame the response from a selling perspective. "
+                "In the recommendation and advice, tell them clearly whether they should SELL or HOLD. "
+                "Do not talk about 'entry zones' for buying in the main recommendation explanation, "
+                "focus on whether selling is safe or risky right now."
+            )
+            rec_format = (
+                "Our Recommendation:\n"
+                "[State clearly what they should do: SELL / HOLD / DO NOT SELL. If signals are mixed, recommend HOLD or state signals are unclear.]\n\n"
+                "Why:\n"
+                "1. Price Movement: [In 2-3 simple sentences. Use CAPITAL LETTERS to highlight facts like PRICE IS RISING or PRICE IS BELOW RECENT AVERAGE.]\n"
+                "2. Big Investors: [In 2 sentences, explain foreign big investors and Indian big investors flow.]\n"
+                "3. News: [In 1-2 sentences, news headlines.]\n"
+                "4. Company Health: [In 2-3 sentences, financially strong or debt risk.]\n\n"
+                "What You Should Do:\n"
+                "Action: [State clearly whether to sell or hold current shares.]\n"
+                "Safety Net Price: [stop_loss] — [One sentence explaining stop loss from a selling perspective.]"
+            )
+        else:
+            query_instruction = (
+                "The user asked about BUYING this stock (e.g. 'should I buy?'). "
+                "Frame the response from a buying perspective. "
+                "In the recommendation and advice, tell them clearly whether they should BUY or HOLD/DO NOT BUY."
+            )
+            rec_format = (
+                "Our Recommendation:\n"
+                "[State clearly what they should do: BUY / HOLD / DO NOT BUY. If signals are mixed, recommend HOLD or state signals are unclear.]\n\n"
+                "Why:\n"
+                "1. Price Movement: [In 2-3 simple sentences. Use CAPITAL LETTERS to highlight facts like PRICE IS RISING or PRICE IS BELOW RECENT AVERAGE.]\n"
+                "2. Big Investors: [In 2 sentences, explain foreign big investors and Indian big investors flow.]\n"
+                "3. News: [In 1-2 sentences, news headlines.]\n"
+                "4. Company Health: [In 2-3 sentences, financially strong or debt risk.]\n\n"
+                "What You Should Do:\n"
+                "Action: [State entry zone or hold instruction clearly.]\n"
+                "Safety Net Price: [stop_loss] — [One sentence explaining stop loss in plain words.]"
+            )
+
         prompt = (
             f"You are a friendly stock market guide for complete beginners in India. "
             f"Your job: explain this stock analysis in PLAIN, SIMPLE English — like explaining to a friend who has never invested before. "
             f"RULES YOU MUST FOLLOW:\n"
             f"- NO markdown (no **, no *, no #, no -).\n"
-            f"- NO finance jargon. Never say: bullish, bearish, MACD, Golden Cross, RSI, FII, DII, threshold, suppressed, overridden.\n"
+            f"- Never say: bullish, bearish, Golden Cross, threshold, suppressed, overridden.\n"
             f"- HIGHLIGHT key words by writing them in CAPITAL LETTERS (example: PRICE IS GOING UP, DO NOT BUY, HOLD YOUR SHARES).\n"
             f"- Keep each point SHORT — maximum 3 sentences per point.\n"
-            f"- Be direct. No long stories. No analogies unless they make it simpler in one line.\n"
-            f"- Final answer should be crystal clear to someone who has never invested before.\n\n"
+            f"- Be direct. No long stories.\n"
+            f"{query_instruction}\n\n"
 
             f"--- STOCK DATA ---\n"
             f"Company: {company_name} ({ticker})\n"
@@ -142,53 +266,79 @@ def generate_beginner_explanation(
             f"Suggested action zone: {entry_zone}\n"
             f"Safety Net Price: {stop_loss}\n\n"
 
-            f"--- WRITE RESPONSE IN THIS EXACT FORMAT ---\n"
-            f"Our Recommendation:\n"
-            f"[One sentence. State clearly what the person should do: BUY / HOLD / DO NOT BUY. "
-            f"If signals were mixed, say 'signals were unclear' — do NOT mention SELL or any raw model output.]\n\n"
-            f"Why:\n"
-            f"1. Price Movement: [In 2-3 simple sentences, is the price going up or down recently? "
-            f"Use CAPITAL LETTERS to highlight key facts like PRICE IS RISING or PRICE IS BELOW RECENT AVERAGE.]\n"
-            f"2. Big Investors: [In 2 sentences, are big investors putting money in or taking money out? "
-            f"Say 'foreign big investors' and 'Indian big investors' — not FII/DII.]\n"
-            f"3. News: [In 1-2 sentences, what does recent news say about this company? "
-            f"Mention the actual headline if relevant.]\n"
-            f"4. Company Health: [In 2-3 sentences, is this a financially strong company? "
-            f"Use simple terms: 'the company earns well for its size', 'the company carries high debt', etc. "
-            f"HIGHLIGHT key verdict in CAPS like FINANCIALLY STRONG or HIGH DEBT RISK.]\n\n"
-            f"What You Should Do:\n"
-            f"Action: [state the entry zone or hold instruction clearly]\n"
-            f"Safety Net Price: {stop_loss} — [one sentence explaining what this means in plain words]\n\n"
+            f"--- WRITE RESPONSE IN THIS EXACT FORMAT with '=== SPLIT ===' separating the two sections ---\n"
+            f"SECTION A: MODEL ANALYSIS AND STRATEGY\n"
+            f"Factors Favouring {'Hold / against Sell' if asked_sell else 'Buy'} (+):\n"
+            f"[Provide 3 bullet points starting with '  • '. Next to each point, mention a bracketed key tag like [RSI], [MACD], [Macro], [FII], [DII], [News], [Fundamentals], [Moving Averages] in simple words explaining what favours buying or holding this stock.]\n\n"
+            f"Factors {'Favouring Sell / Weaknesses' if asked_sell else 'Against Buy / Favouring Hold'} (-):\n"
+            f"[Provide 3 bullet points starting with '  • '. Next to each point, mention a bracketed key tag like [RSI], [MACD], [Macro], [FII], [DII], [News], [Fundamentals], [Moving Averages] in simple words explaining what does not favour buying/holding this stock.]\n\n"
+            f"Strategic Advice:\n"
+            f"  • Action: [State action clearly. "
+            f"If user asked about buying: 'Avoid buying new shares. Hold current shares.' (if HOLD) or 'Buy shares.' (if BUY). "
+            f"If user asked about selling: 'Do not sell. Hold current shares.' (if HOLD) or 'Sell shares.' (if SELL). "
+            f"If BUY probability is between 50% and 54.9%, append: (WATCH CLOSELY: Very close to buy zone).]\n"
+            f"  • Stop Loss (Safety Net): {stop_loss} (Current price: Rs.{current_price}) — [One sentence explaining how to act on this stop loss to limit losses.]\n\n"
+            f"=== SPLIT ===\n\n"
+            f"SECTION B: BEGINNER EXPLANATION\n"
+            f"{rec_format}\n\n"
             f"Important:\n"
             f"[One sentence disclaimer, plain English, under 15 words.]"
         )
 
-        
         import time
         max_retries = 3
         for attempt in range(max_retries):
             try:
+                current_key = _get_api_key(attempt)
+                client = genai.Client(api_key=current_key)
                 response = client.models.generate_content(
                     model="gemini-2.5-flash",
                     contents=prompt
                 )
-                return clean_markdown(response.text)
+                raw_text = clean_markdown(response.text)
+                
+                # Split raw_text by delimiter
+                if "=== SPLIT ===" in raw_text:
+                    parts = raw_text.split("=== SPLIT ===")
+                    section_a = parts[0].replace("SECTION A: MODEL ANALYSIS AND STRATEGY", "").strip()
+                    section_b = parts[1].replace("SECTION B: BEGINNER EXPLANATION", "").strip()
+                    return section_a, section_b
+                else:
+                    # Fallback if split delimiter is missing
+                    return raw_text, raw_text
             except Exception as ex:
                 err_msg = str(ex)
-                if "429" in err_msg or "quota" in err_msg.lower() or "limit" in err_msg.lower():
+                keys = [k.strip() for k in raw_key.split(",") if k.strip()]
+                if len(keys) > 1:
+                    print(f"\n[!] Gemini API call failed on key {attempt+1}/{len(keys)}: {err_msg[:120]}. Rotating to next key...")
+                    time.sleep(0.5)
+                    continue
+                else:
                     if attempt < max_retries - 1:
-                        sleep_time = 15 * (attempt + 1)
-                        print(f"\n[!] Gemini rate limit hit. Retrying in {sleep_time}s ({attempt+1}/{max_retries})...")
+                        sleep_time = 5 * (attempt + 1)
+                        print(f"\n[!] Gemini API call failed: {err_msg[:120]}. Retrying in {sleep_time}s ({attempt+1}/{max_retries})...")
                         time.sleep(sleep_time)
                         continue
                 raise ex
         
     except Exception as e:
         print(f"[Warning] Failed to generate explanation via Gemini API: {e}. Using fallback.")
-        return f"Recommendation: {recommendation} (Confidence: {confidence:.1f}%)\n" \
-               f"Entry Zone: {entry_zone}\n" \
-               f"Safety Net Price: {stop_loss}\n" \
-               f"Error generating LLM explanation. Please verify your internet connection and API keys."
+        fallback_model_analysis = (
+            f"Factors Favouring {'Hold / against Sell' if asked_sell else 'Buy'} (+):\n"
+            f"  • [RSI] Price momentum is neutral.\n\n"
+            f"Factors {'Favouring Sell / Weaknesses' if asked_sell else 'Against Buy / Favouring Hold'} (-):\n"
+            f"  • [Moving Averages] Price is under pressure.\n\n"
+            f"Strategic Advice:\n"
+            f"  • Action: {'Do not sell. Hold current shares.' if asked_sell else 'Avoid buying new shares. Hold current shares.'}\n"
+            f"  • Stop Loss (Safety Net): {stop_loss} (Current price: Rs.{current_price}) — Sell any shares to limit losses."
+        )
+        fallback_beginner_explanation = (
+            f"Recommendation: {recommendation} (Confidence: {confidence:.1f}%)\n"
+            f"Entry Zone: {entry_zone}\n"
+            f"Safety Net Price: {stop_loss}\n"
+            f"Error generating LLM explanation. Please verify your internet connection and API keys."
+        )
+        return fallback_model_analysis, fallback_beginner_explanation
 
 
 def explain_educational_concept(user_input: str) -> str:
@@ -196,8 +346,8 @@ def explain_educational_concept(user_input: str) -> str:
     Uses Google Gemini to explain a general stock market concept or answer
     an educational finance question for beginners.
     """
-    api_key = os.getenv("GEMINI_API_KEY")
-    if not api_key or "PLACEHOLDER" in api_key:
+    raw_key = os.getenv("GEMINI_API_KEY", "")
+    if not raw_key or "PLACEHOLDER" in raw_key:
         return (
             "I couldn't identify a specific stock in your query, and the Gemini API key is missing "
             "to answer general financial questions. Please ask about a supported stock (e.g., 'SBI') "
@@ -218,11 +368,12 @@ def explain_educational_concept(user_input: str) -> str:
     )
 
     try:
-        client = genai.Client(api_key=api_key)
         import time
         max_retries = 3
         for attempt in range(max_retries):
             try:
+                current_key = _get_api_key(attempt)
+                client = genai.Client(api_key=current_key)
                 response = client.models.generate_content(
                     model="gemini-2.5-flash",
                     contents=prompt
@@ -230,9 +381,15 @@ def explain_educational_concept(user_input: str) -> str:
                 return clean_markdown(response.text)
             except Exception as ex:
                 err_msg = str(ex)
-                if "429" in err_msg or "quota" in err_msg.lower() or "limit" in err_msg.lower():
+                keys = [k.strip() for k in raw_key.split(",") if k.strip()]
+                if len(keys) > 1:
+                    print(f"\n[!] Gemini API call failed on key {attempt+1}/{len(keys)}: {err_msg[:120]}. Rotating to next key...")
+                    time.sleep(0.5)
+                    continue
+                else:
                     if attempt < max_retries - 1:
-                        sleep_time = 15 * (attempt + 1)
+                        sleep_time = 5 * (attempt + 1)
+                        print(f"\n[!] Gemini API call failed: {err_msg[:120]}. Retrying in {sleep_time}s ({attempt+1}/{max_retries})...")
                         time.sleep(sleep_time)
                         continue
                 raise ex
@@ -246,8 +403,8 @@ def generate_comparison_explanation(stocks: list[dict]) -> str:
     providing a clear, beginner-friendly summary of which one has
     better indicators / fundamentals and why.
     """
-    api_key = os.getenv("GEMINI_API_KEY")
-    if not api_key or "PLACEHOLDER" in api_key:
+    raw_key = os.getenv("GEMINI_API_KEY", "")
+    if not raw_key or "PLACEHOLDER" in raw_key:
         return "Comparison analysis completed. Configure GEMINI_API_KEY in the .env file to get a detailed AI comparison summary."
 
     # Format the data of each stock to put in the prompt
@@ -299,11 +456,12 @@ def generate_comparison_explanation(stocks: list[dict]) -> str:
     )
 
     try:
-        client = genai.Client(api_key=api_key)
         import time
         max_retries = 3
         for attempt in range(max_retries):
             try:
+                current_key = _get_api_key(attempt)
+                client = genai.Client(api_key=current_key)
                 response = client.models.generate_content(
                     model="gemini-2.5-flash",
                     contents=prompt
@@ -311,9 +469,15 @@ def generate_comparison_explanation(stocks: list[dict]) -> str:
                 return clean_markdown(response.text)
             except Exception as ex:
                 err_msg = str(ex)
-                if "429" in err_msg or "quota" in err_msg.lower() or "limit" in err_msg.lower():
+                keys = [k.strip() for k in raw_key.split(",") if k.strip()]
+                if len(keys) > 1:
+                    print(f"\n[!] Gemini API call failed on key {attempt+1}/{len(keys)}: {err_msg[:120]}. Rotating to next key...")
+                    time.sleep(0.5)
+                    continue
+                else:
                     if attempt < max_retries - 1:
-                        sleep_time = 15 * (attempt + 1)
+                        sleep_time = 5 * (attempt + 1)
+                        print(f"\n[!] Gemini API call failed: {err_msg[:120]}. Retrying in {sleep_time}s ({attempt+1}/{max_retries})...")
                         time.sleep(sleep_time)
                         continue
                 raise ex

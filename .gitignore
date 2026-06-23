@@ -10,3 +10,8 @@ data/raw/
 data/processed/
 data/macro/
 data/fii_dii/live_fii_dii_cache.csv
+data/fii_dii/backtest_fii_dii_*.csv
+fii_dii_mrchartist_history_full.json
+
+# Temporary/debug baselines and metadata
+models/*.json

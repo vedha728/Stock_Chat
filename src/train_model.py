@@ -3,8 +3,7 @@ import time
 import yfinance as yf
 import pandas as pd
 import numpy as np
-from sklearn.model_selection import train_test_split, StratifiedKFold, cross_val_score
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import train_test_split, cross_val_score
 from sklearn.metrics import classification_report, accuracy_score, confusion_matrix
 from xgboost import XGBClassifier
 import joblib
@@ -18,7 +17,7 @@ from feature_engineering import compile_feature_matrix
 # 100 stocks across Nifty 100 sectors for broad, generalizable training
 TRAINING_STOCKS = [
     # --- IT / Technology (9 stocks) ---
-    "INFY.NS", "TCS.NS", "WIPRO.NS", "HCLTECH.NS", "TECHM.NS", "LTIM.NS", "MPHASIS.NS", "PERSISTENT.NS", "COFORGE.NS",
+    "INFY.NS", "TCS.NS", "WIPRO.NS", "HCLTECH.NS", "TECHM.NS", "LTM.NS", "MPHASIS.NS", "PERSISTENT.NS", "COFORGE.NS",
     
     # --- Banking & Finance (20 stocks) ---
     "HDFCBANK.NS", "ICICIBANK.NS", "SBIN.NS", "AXISBANK.NS", "KOTAKBANK.NS", "BANKBARODA.NS", "PNB.NS", "INDUSINDBK.NS", 
@@ -28,8 +27,8 @@ TRAINING_STOCKS = [
     # --- Oil/Energy & Commodities (11 stocks) ---
     "RELIANCE.NS", "ONGC.NS", "OIL.NS", "BPCL.NS", "IOC.NS", "HINDPETRO.NS", "GAIL.NS", "PETRONET.NS", "NTPC.NS", "POWERGRID.NS", "COALINDIA.NS",
     
-    # --- Auto (10 stocks) ---
-    "MARUTI.NS", "M&M.NS", "HEROMOTOCO.NS", "BAJAJ-AUTO.NS", "EICHERMOT.NS", "ASHOKLEY.NS", "TVSMOTOR.NS", "BOSCHLTD.NS", "MOTHERSON.NS", "TMPV.NS",
+    # --- Auto (11 stocks - including demerged divisions) ---
+    "MARUTI.NS", "M&M.NS", "HEROMOTOCO.NS", "BAJAJ-AUTO.NS", "EICHERMOT.NS", "ASHOKLEY.NS", "TVSMOTOR.NS", "BOSCHLTD.NS", "MOTHERSON.NS", "TMPV.NS", "TMCV.NS",
     
     # --- FMCG & Consumer (10 stocks) ---
     "HINDUNILVR.NS", "NESTLEIND.NS", "ITC.NS", "BRITANNIA.NS", "DABUR.NS", "MARICO.NS", "EMAMILTD.NS", "GODREJCP.NS", "COLPAL.NS", "PGHH.NS",
@@ -38,7 +37,7 @@ TRAINING_STOCKS = [
     "SUNPHARMA.NS", "DRREDDY.NS", "CIPLA.NS", "DIVISLAB.NS", "AUROPHARMA.NS", "LUPIN.NS", "TORNTPHARM.NS", "APOLLOHOSP.NS", "MAXHEALTH.NS", "FORTIS.NS",
     
     # --- Capital Goods & Infrastructure (10 stocks) ---
-    "LT.NS", "BHEL.NS", "SIEMENS.NS", "ABB.NS", "HAVELLS.NS", "CGPOWER.NS", "BEL.NS", "IRFC.NS", "IRB.NS", "GMRINFRA.NS",
+    "LT.NS", "BHEL.NS", "SIEMENS.NS", "ABB.NS", "HAVELLS.NS", "CGPOWER.NS", "BEL.NS", "IRFC.NS", "IRB.NS", "GMRAIRPORT.NS",
     
     # --- Adani Group (9 stocks) ---
     "ADANIPORTS.NS", "ADANIENT.NS", "ADANIGREEN.NS", "ADANIPOWER.NS", "ATGL.NS", "AWL.NS", "NDTV.NS", "AMBUJACEM.NS", "ACC.NS",
@@ -94,7 +93,7 @@ def generate_forward_labels(df: pd.DataFrame, forward_days: int = 5, threshold: 
 def run_training_pipeline():
     """
     Downloads historical data, calculates indicators, engineers features,
-    trains Random Forest model, prints evaluation metrics, and saves model.
+    trains XGBoost model on 23 features, prints evaluation metrics, and saves model.
     """
     print("=========================================================================")
     print("[*] Starting Machine Learning Training Pipeline")
@@ -113,65 +112,105 @@ def run_training_pipeline():
     macro_df = fetch_global_macro_data(start_date, end_date)
     
     combined_datasets = []
+    succeeded_tickers = []   # Tickers processed successfully
+    skipped_tickers   = []   # Tickers that failed (with reason)
     
-    # 2. Process each training stock
+    # 2. Process each training stock — with retry logic for network failures
+    MAX_RETRIES = 3
+    RETRY_DELAY = 2  # seconds between retries
+
     for ticker in TRAINING_STOCKS:
-        try:
-            print(f"\n[*] Processing training dataset for {ticker}...")
-            # Download 2 years of daily data
-            stock_df = yf.download(ticker, start=start_date, end=end_date)
+        success = False
+        last_error = None
+
+        for attempt in range(1, MAX_RETRIES + 1):
+            try:
+                if attempt == 1:
+                    print(f"\n[*] Processing training dataset for {ticker}...")
+                else:
+                    print(f"\n[*] Retrying {ticker} (attempt {attempt}/{MAX_RETRIES})...")
+
+                # Download 5 years of daily data
+                stock_df = yf.download(ticker, start=start_date, end=end_date, progress=False)
+
+                # Clean column multi-index if present (yfinance sometimes outputs multi-index columns)
+                if isinstance(stock_df.columns, pd.MultiIndex):
+                    stock_df.columns = stock_df.columns.get_level_values(0)
+                stock_df = stock_df.reset_index()
+
+                if stock_df.empty:
+                    # Empty data means delisted or wrong ticker — no point retrying
+                    print(f"[Skip] No price data found for {ticker} (possibly delisted or invalid ticker).")
+                    skipped_tickers.append((ticker, "No data returned (delisted or invalid ticker)"))
+                    break  # Exit retry loop for this ticker
+
+                # Save raw training CSV — sanitize ticker for filename
+                import re as _re
+                safe_ticker = _re.sub(r'[^a-zA-Z0-9]', '_', ticker)
+                os.makedirs("data/raw", exist_ok=True)
+                stock_df.to_csv(f"data/raw/{safe_ticker}_5y.csv", index=False)
+
+                # Compute technical indicators
+                price_indicators_df = calculate_technical_indicators(stock_df)
+
+                # Merge with FII/DII flow and generate sentiment proxy
+                feature_df = compile_feature_matrix(price_indicators_df, fii_dii_df, macro_df=macro_df, is_training=True)
+
+                # Apply BUY/HOLD/SELL labels
+                labeled_df = generate_forward_labels(feature_df, forward_days=5, threshold=0.02)
+
+                combined_datasets.append(labeled_df)
+                succeeded_tickers.append(ticker)
+                print(f"[+] Loaded {len(labeled_df)} training rows for {ticker}")
+                success = True
+                break  # Exit retry loop — success
+
+            except Exception as e:
+                last_error = str(e)
+                if attempt < MAX_RETRIES:
+                    print(f"[Warning] Attempt {attempt} failed for {ticker}: {e}")
+                    print(f"          Waiting {RETRY_DELAY}s before retry...")
+                    time.sleep(RETRY_DELAY)
+                else:
+                    print(f"[Error] All {MAX_RETRIES} attempts failed for {ticker}: {e}")
+                    skipped_tickers.append((ticker, f"Error after {MAX_RETRIES} attempts: {last_error[:80]}"))
             
-            # Clean column multi-index if present (yfinance sometimes outputs multi-index columns)
-            if isinstance(stock_df.columns, pd.MultiIndex):
-                stock_df.columns = stock_df.columns.get_level_values(0)
-            stock_df = stock_df.reset_index()
-            
-            if stock_df.empty:
-                print(f"[Error] No price data found for {ticker}, skipping.")
-                continue
-                
-            # Save raw training CSV — sanitize ticker for filename
-            import re as _re
-            safe_ticker = _re.sub(r'[^a-zA-Z0-9]', '_', ticker)
-            os.makedirs("data/raw", exist_ok=True)
-            stock_df.to_csv(f"data/raw/{safe_ticker}_2y.csv", index=False)
-            
-            # Compute technical indicators
-            price_indicators_df = calculate_technical_indicators(stock_df)
-            
-            # Merge with FII/DII flow and generate sentiment proxy
-            feature_df = compile_feature_matrix(price_indicators_df, fii_dii_df, macro_df=macro_df, is_training=True)
-            
-            # Apply BUY/HOLD/SELL labels
-            labeled_df = generate_forward_labels(feature_df, forward_days=5, threshold=0.02)
-            
-            combined_datasets.append(labeled_df)
-            print(f"[+] Loaded {len(labeled_df)} training rows for {ticker}")
-            
-        except Exception as e:
-            print(f"[Error] Failed processing {ticker}: {e}")
-            
-    if not combined_datasets:
-        print("[Error] No training data could be collected! Training aborted.")
-        return
+    # ── Data Collection Summary ───────────────────────────────────────────────
+    print("\n" + "=" * 60)
+    print("DATA COLLECTION SUMMARY")
+    print(f"  [OK] Succeeded : {len(succeeded_tickers)}/{len(TRAINING_STOCKS)} stocks")
+    if skipped_tickers:
+        print(f"  [WARN] Skipped  : {len(skipped_tickers)} stock(s)")
+        for t, reason in skipped_tickers:
+            print(f"     -> {t}: {reason}")
+    print("=" * 60)
+
         
+    # Abort if no data was collected at all
+    if not combined_datasets:
+        print("\n[FATAL] No training data could be collected for any stock! Training aborted.")
+        print("        Check your internet connection and Yahoo Finance availability.")
+        return
+
     # Combine all stocks into one big dataset
     master_df = pd.concat(combined_datasets, ignore_index=True)
     print(f"\n[+] Combined Dataset Size: {master_df.shape[0]} rows, {master_df.shape[1]} columns")
+
     
     # Save processed master dataset for verification
     os.makedirs("data/processed", exist_ok=True)
     master_df.to_csv("data/processed/master_training_dataset.csv", index=False)
     print("[+] Saved master training dataset to data/processed/master_training_dataset.csv")
     
-    # 3. Define features (X) and labels (y)
+    # 3. Define features (X) and labels (y) — 18 features total
     feature_cols = [
-        'RSI', 'MACD_Hist', 'MACD_Crossover', 
-        'Price_Above_MA50', 'Price_Above_MA200', 'Golden_Cross', 
+        'RSI', 'MACD_Hist', 'MACD_Crossover',
+        'Price_Above_MA50', 'Price_Above_MA200', 'Golden_Cross',
         'Volume_Ratio', 'Sentiment_Score', 'Positive_Headlines', 'Negative_Headlines',
-        'FII_10d_Net', 'DII_10d_Net', 'FII_Trend', 'DII_Trend', 
-        'Divergence_Flag', 'Multi_Timeframe_Alignment',
-        'SP500_Return', 'Crude_Return', 'USD_INR_Return'
+        'Multi_Timeframe_Alignment',
+        'SP500_Return', 'Crude_Return', 'USD_INR_Return',
+        # Rolling window features (Issue #3 — sequence context for XGBoost)
+        'RSI_Slope', 'Price_Pct_5d', 'Price_Pct_20d', 'Volatility_10d'
     ]
     
     X = master_df[feature_cols]
@@ -184,26 +223,7 @@ def run_training_pipeline():
     print(f"[+] Train size: {len(X_train)} rows | Test size: {len(X_test)} rows")
 
     # =========================================================
-    # 5A. Baseline: Random Forest (kept for comparison)
-    # =========================================================
-    print("\n[*] Training baseline Random Forest (for comparison)...")
-    rf_model = RandomForestClassifier(
-        n_estimators=200,
-        max_depth=12,
-        min_samples_leaf=5,
-        random_state=42,
-        class_weight='balanced',
-        n_jobs=-1   # use all CPU cores
-    )
-    t0 = time.time()
-    rf_model.fit(X_train, y_train)
-    rf_time = time.time() - t0
-    rf_pred = rf_model.predict(X_test)
-    rf_acc  = accuracy_score(y_test, rf_pred)
-    print(f"[+] Random Forest done in {rf_time:.2f}s | Accuracy: {rf_acc*100:.2f}%")
-
-    # =========================================================
-    # 5B. Main Model: XGBoost Classifier (tuned for stock data)
+    # 5. Main Model: XGBoost Classifier (tuned for stock data)
     # =========================================================
     print("\n[*] Training XGBoost Classifier on CPU...")
     # Label encode: XGBoost needs labels 0,1,2 (already the case: SELL=0, HOLD=1, BUY=2)
@@ -232,21 +252,6 @@ def run_training_pipeline():
     xgb_pred = xgb_model.predict(X_test)
     xgb_acc  = accuracy_score(y_test, xgb_pred)
     print(f"[+] XGBoost done in {xgb_time:.2f}s | Accuracy: {xgb_acc*100:.2f}%")
-
-    # =========================================================
-    # 6. Side-by-Side Comparison
-    # =========================================================
-    print("\n" + "="*60)
-    print("  MODEL COMPARISON RESULTS")
-    print("="*60)
-    print(f"  {'Model':<25} {'Accuracy':>10} {'Train Time':>12}")
-    print(f"  {'-'*25} {'-'*10} {'-'*12}")
-    print(f"  {'Random Forest':<25} {rf_acc*100:>9.2f}% {rf_time:>10.2f}s")
-    print(f"  {'XGBoost (selected)':<25} {xgb_acc*100:>9.2f}% {xgb_time:>10.2f}s")
-    improvement = (xgb_acc - rf_acc) * 100
-    print(f"\n  XGBoost improvement over RF: +{improvement:.2f}%" if improvement >= 0
-          else f"\n  RF was better by: {abs(improvement):.2f}%")
-    print("="*60)
 
     # =========================================================
     # 7. Detailed XGBoost Report
@@ -279,6 +284,13 @@ def run_training_pipeline():
     joblib.dump(xgb_model, model_path)
     print(f"\n[+] Saved XGBoost model to {model_path}")
     print(f"[DONE] Training complete. XGBoost is now the active prediction model.")
+    return {
+        "stocks_processed": len(succeeded_tickers),
+        "training_rows": int(master_df.shape[0]),
+        "test_accuracy_pct": f"{xgb_acc*100:.2f}%",
+        "cv_mean_accuracy_pct": f"{cv_scores.mean()*100:.2f}%",
+        "notes": "Trained with 18-feature XGBoost. Correct active tickers included in training."
+    }
     
 if __name__ == "__main__":
     run_training_pipeline()

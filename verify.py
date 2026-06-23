@@ -157,7 +157,7 @@ try:
     sentiment_summary = (0.0, 0, 0)
     # Mock macro returns
     macro_returns = (0.005, -0.01, 0.002)
-    feature_row = prepare_inference_row(latest_row, inst_summary, sentiment_summary, macro_returns)
+    feature_row = prepare_inference_row(indicators_df, inst_summary, sentiment_summary, macro_returns)
 
     result = predict_stock_action(feature_row)
     rec    = result["Recommendation"]
@@ -347,9 +347,9 @@ try:
         'RSI': 35.0, 'MACD_Hist': 0.12, 'MACD_Crossover': 1,
         'Price_Above_MA50': 1, 'Price_Above_MA200': 1, 'Golden_Cross': 1,
         'Volume_Ratio': 1.8, 'Sentiment_Score': 0.65, 'Positive_Headlines': 8, 'Negative_Headlines': 1,
-        'FII_10d_Net': 1500.0, 'DII_10d_Net': 800.0, 'FII_Trend': 1, 'DII_Trend': 1,
-        'Divergence_Flag': 0, 'Multi_Timeframe_Alignment': 1,
-        'SP500_Return': 0.005, 'Crude_Return': -0.01, 'USD_INR_Return': 0.002
+        'Multi_Timeframe_Alignment': 1,
+        'SP500_Return': 0.005, 'Crude_Return': -0.01, 'USD_INR_Return': 0.002,
+        'RSI_Slope': 5.2, 'Price_Pct_5d': 1.5, 'Price_Pct_20d': 3.2, 'Volatility_10d': 1.1
     }])
     res = predict_stock_action(mock_row)
     breakdown = res.get("Breakdown", {})
