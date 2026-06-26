@@ -184,44 +184,23 @@ def get_verdict_style(rec: str, low_conf: bool):
 if app_mode == "🔍 Stock Analysis & Chat":
     st.write("### 🔍 Search Stock or Ask a Question")
     
-    # Initialize session state for the query
-    if "chat_active_query" not in st.session_state:
-        st.session_state.chat_active_query = ""
-
-    # Predefined buttons that update active query and trigger rerun
-    cols = st.columns(4)
-    with cols[0]:
-        if st.button("Should I buy TCS?"):
-            st.session_state.chat_active_query = "Should I buy TCS?"
-            st.rerun()
-    with cols[1]:
-        if st.button("Analyze Maruti Suzuki"):
-            st.session_state.chat_active_query = "Analyze Maruti Suzuki"
-            st.rerun()
-    with cols[2]:
-        if st.button("News about Wipro"):
-            st.session_state.chat_active_query = "News about Wipro"
-            st.rerun()
-    with cols[3]:
-        if st.button("Is L&T overextended?"):
-            st.session_state.chat_active_query = "Is L&T overextended?"
-            st.rerun()
-
-    # Text input box displaying the persistent active query
-    user_input_val = st.text_input(
+    # Text input box mimicking the terminal chat interface
+    chat_input = st.text_input(
         "Type your query below:",
-        value=st.session_state.chat_active_query,
         placeholder="e.g., Should I buy TCS? or analyze Reliance, or what is the news on Wipro?",
         help="Type any stock name or natural query like: 'Is L&T stock good to buy?'"
     )
-
-    # Sync text input changes to active_query
-    if user_input_val != st.session_state.chat_active_query:
-        st.session_state.chat_active_query = user_input_val
-        st.rerun()
-
-    # Use the session state query for execution
-    chat_input = st.session_state.chat_active_query
+    
+    # Simple examples for user guidance
+    cols = st.columns(4)
+    with cols[0]:
+        if st.button("Should I buy TCS?"): chat_input = "Should I buy TCS?"
+    with cols[1]:
+        if st.button("Analyze Maruti Suzuki"): chat_input = "Analyze Maruti Suzuki"
+    with cols[2]:
+        if st.button("News about Wipro"): chat_input = "News about Wipro"
+    with cols[3]:
+        if st.button("Is L&T overextended?"): chat_input = "Is L&T overextended?"
 
     if chat_input:
         # Determine intent tags
@@ -280,8 +259,7 @@ if app_mode == "🔍 Stock Analysis & Chat":
                         fundamentals = fetch_fundamentals(selected_ticker)
                         price_df = fetch_stock_price(selected_ticker)
                         current_price = float(price_df.iloc[-1]['Close'])
-                        
-                        st.subheader(f"📊 Fundamentals Dashboard: {selected_company}")
+                        st.subheader(f"📊 Fundamentals Dashboard: {selected_company} | Price: ₹{current_price:,.2f}")
                         if not fundamentals:
                             st.info("Fundamentals metrics are currently unavailable.")
                         else:
@@ -330,8 +308,8 @@ if app_mode == "🔍 Stock Analysis & Chat":
             
             # FULL STANDARD REPORT
             else:
-                with st.spinner(f"🔄 Running Multi-Signal AI Analysis for {selected_company} (fetching stock prices, technical indicators, media news sentiment, institutional flows, and global macro return factors)..."):
-                    # ── Step 1: Fetch Price & Technicals (Critical) ──
+                # ── Step 1: Fetch Price & Technicals (Critical) ──
+                with st.spinner("Downloading price data & calculating chart indicators..."):
                     try:
                         price_df = fetch_stock_price(selected_ticker)
                         price_indicators_df = calculate_technical_indicators(price_df)
@@ -343,8 +321,9 @@ if app_mode == "🔍 Stock Analysis & Chat":
                     except Exception as e:
                         st.error(f"Error fetching stock data: {e}")
                         st.stop()
-                    
-                    # ── Step 2: Fetch News Sentiment (Non-critical) ──
+                
+                # ── Step 2: Fetch News Sentiment (Non-critical) ──
+                with st.spinner("Analyzing media headlines..."):
                     try:
                         headlines = fetch_news_headlines(selected_ticker, selected_company)
                         if headlines:
@@ -358,8 +337,9 @@ if app_mode == "🔍 Stock Analysis & Chat":
                         sentiment_summary = (0.0, 0, 0, 0)
                         sent_score, pos_count, neg_count = 0.0, 0, 0
                         headlines = []
-                    
-                    # ── Step 3: Fetch Institutional Flow (Non-critical) ──
+                
+                # ── Step 3: Fetch Institutional Flow (Non-critical) ──
+                with st.spinner("Analyzing FII/DII cash flows..."):
                     try:
                         fii_dii_df = fetch_latest_fii_dii()
                         fii_net_list = fii_dii_df['FII_Net'].tolist()
@@ -371,30 +351,34 @@ if app_mode == "🔍 Stock Analysis & Chat":
                             "FII_10d_Net": 0.0, "DII_10d_Net": 0.0,
                             "FII_Trend": 0, "DII_Trend": 0, "Divergence_Flag": 0
                         }
-                    
-                    # ── Step 4: Fetch Fundamentals (Non-critical) ──
+                
+                # ── Step 4: Fetch Fundamentals (Non-critical) ──
+                with st.spinner("Extracting valuation multipliers..."):
                     try:
                         fundamentals = fetch_fundamentals(selected_ticker)
                     except Exception as e:
                         st.warning(f"Could not load fundamentals: {e}")
                         fundamentals = {}
-                    
-                    # ── Step 5: Fetch Macro Returns (Non-critical) ──
+                
+                # ── Step 5: Fetch Macro Returns (Non-critical) ──
+                with st.spinner("Aligning global macro variables..."):
                     try:
                         macro_returns = get_latest_macro_returns()
                     except Exception as e:
                         st.warning(f"Global macro returns unavailable: {e}")
                         macro_returns = (0.0, 0.0, 0.0)
-                    
-                    # ── Step 6: ML Prediction ──
+                
+                # ── Step 6: ML Prediction ──
+                with st.spinner("Running ML classifier model..."):
                     try:
                         feature_row = prepare_inference_row(price_indicators_df, fii_dii_summary, sentiment_summary, macro_returns)
                         ml_result = predict_stock_action(feature_row)
                     except Exception as e:
                         st.error(f"XGBoost model inference failed: {e}")
                         st.stop()
-                    
-                    # ── Step 7: Explain via Gemini ──
+                
+                # ── Step 7: Explain via Gemini ──
+                with st.spinner("Generating beginner-friendly AI explanations..."):
                     # Build unified technical summary dictionary containing Price_Pct_5d
                     tech_summary_dict = {
                         **latest_price_row.to_dict(),
@@ -447,6 +431,11 @@ if app_mode == "🔍 Stock Analysis & Chat":
                         <div style="font-size: 14px; margin-top: 10px; color: #94A3B8;">
                             Top signal confidence: <b>{conf:.1f}%</b>
                         </div>
+                    </div>
+                    
+                    <div class="glass-card">
+                        <div class="metric-label">Current Stock Price</div>
+                        <div class="metric-value">₹{current_price:,.2f}</div>
                     </div>
                     """, unsafe_allow_html=True)
                     
