@@ -7,6 +7,24 @@ import numpy as np
 # Reconfigure stdout to use UTF-8 to avoid encoding issues in logs
 sys.stdout.reconfigure(encoding='utf-8')
 
+# Diagnostics to debug the import error
+print("--- PYTHON DIAGNOSTICS ---")
+print("Python executable:", sys.executable)
+print("Python path:", sys.path)
+import subprocess
+try:
+    res = subprocess.run([sys.executable, "-m", "pip", "list"], capture_output=True, text=True)
+    print("--- INSTALLED PACKAGES ---")
+    print(res.stdout)
+except Exception as e:
+    print("Failed to list packages:", e)
+
+try:
+    import google
+    print("Google namespace path:", getattr(google, "__path__", "No __path__ attribute"))
+except Exception as e:
+    print("Failed to import google:", e)
+
 # Link to src directory
 project_root = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(project_root, "src"))
