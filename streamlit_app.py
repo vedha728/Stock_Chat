@@ -7,23 +7,38 @@ import numpy as np
 # Reconfigure stdout to use UTF-8 to avoid encoding issues in logs
 sys.stdout.reconfigure(encoding='utf-8')
 
-# Diagnostics to debug the import error
-print("--- PYTHON DIAGNOSTICS ---")
-print("Python executable:", sys.executable)
-print("Python path:", sys.path)
-import subprocess
+# Diagnostics to debug the yfinance info block on cloud IPs
+import requests
+import yfinance as yf
+print("--- YFINANCE DIAGNOSTICS ---")
+ticker_name = "TCS.NS"
 try:
-    res = subprocess.run([sys.executable, "-m", "pip", "list"], capture_output=True, text=True)
-    print("--- INSTALLED PACKAGES ---")
-    print(res.stdout)
+    print("Test 1: Standard yfinance info...")
+    t1 = yf.Ticker(ticker_name)
+    print("T1 Info keys count:", len(t1.info) if t1.info else 0)
+    print("T1 PE:", t1.info.get("trailingPE") if t1.info else "None")
 except Exception as e:
-    print("Failed to list packages:", e)
+    print("T1 Error:", e)
 
 try:
-    import google
-    print("Google namespace path:", getattr(google, "__path__", "No __path__ attribute"))
+    print("Test 2: Custom Session yfinance info...")
+    session = requests.Session()
+    session.headers.update({
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36'
+    })
+    t2 = yf.Ticker(ticker_name, session=session)
+    print("T2 Info keys count:", len(t2.info) if t2.info else 0)
+    print("T2 PE:", t2.info.get("trailingPE") if t2.info else "None")
 except Exception as e:
-    print("Failed to import google:", e)
+    print("T2 Error:", e)
+
+try:
+    print("Test 3: fast_info check...")
+    t3 = yf.Ticker(ticker_name)
+    print("T3 Fast Info keys:", list(t3.fast_info.keys()) if t3.fast_info else "None")
+    print("T3 Fast Market Cap:", t3.fast_info.get("market_cap") if t3.fast_info else "None")
+except Exception as e:
+    print("T3 Error:", e)
 
 # Link to src directory
 project_root = os.path.dirname(os.path.abspath(__file__))
