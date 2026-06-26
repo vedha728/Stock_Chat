@@ -654,7 +654,7 @@ def fetch_news_headlines(ticker: str, company_name: str) -> list[str]:
             query = f'"{company_name}" OR "{ticker.split(".")[0]}"'
             url = (
                 f"https://newsapi.org/v2/everything?"
-                f"q={quote_plus(query)}&"
+                f"qInTitle={quote_plus(query)}&"
                 f"from={from_date_str}&"
                 f"language=en&"
                 f"sortBy=relevance&"
@@ -682,13 +682,26 @@ def fetch_news_headlines(ticker: str, company_name: str) -> list[str]:
             
             if response.status_code == 200:
                 # Parse XML RSS Feed
+                import re
                 root = ET.fromstring(response.content)
+                ticker_clean = ticker.split(".")[0].lower()
+                comp_clean = company_name.lower()
+                
+                raw_rss_count = 0
                 for item in root.findall(".//item"):
                     title = item.find("title")
                     if title is not None and title.text:
-                        # Clean RSS text if needed
-                        headlines.append(title.text)
-                print(f"[+] Retrieved {len(headlines)} headlines from Yahoo Finance RSS.")
+                        raw_rss_count += 1
+                        title_text = title.text
+                        title_lower = title_text.lower()
+                        # Enforce strict title matching to keep only relevant articles
+                        has_match = (
+                            comp_clean in title_lower or
+                            re.search(rf"\b{re.escape(ticker_clean)}\b", title_lower) is not None
+                        )
+                        if has_match:
+                            headlines.append(title_text)
+                print(f"[+] Retrieved {raw_rss_count} raw headlines from Yahoo Finance RSS, filtered to {len(headlines)} relevant articles.")
         except Exception as e:
             print(f"[Error] Failed to fetch news from RSS fallback: {e}")
             
@@ -801,6 +814,9 @@ def fetch_global_macro_data(start_date: str, end_date: str) -> pd.DataFrame:
     macro_df = macro_df.sort_values('Date').reset_index(drop=True)
     macro_df[['SP500_Return', 'Crude_Return', 'USD_INR_Return']] = macro_df[['SP500_Return', 'Crude_Return', 'USD_INR_Return']].ffill().fillna(0.0)
     
+    # Shift macro return columns by 1 trading day to resolve timezone lag (2A)
+    macro_df[['SP500_Return', 'Crude_Return', 'USD_INR_Return']] = macro_df[['SP500_Return', 'Crude_Return', 'USD_INR_Return']].shift(1).fillna(0.0)
+    
     return macro_df
 
 
@@ -862,6 +878,9 @@ def get_latest_macro_returns() -> tuple[float, float, float]:
         
         macro_df = macro_df.sort_values('Date').reset_index(drop=True)
         macro_df[['SP500_Return', 'Crude_Return', 'USD_INR_Return']] = macro_df[['SP500_Return', 'Crude_Return', 'USD_INR_Return']].ffill().fillna(0.0)
+        
+        # Shift macro return columns by 1 trading day to resolve timezone lag (2A)
+        macro_df[['SP500_Return', 'Crude_Return', 'USD_INR_Return']] = macro_df[['SP500_Return', 'Crude_Return', 'USD_INR_Return']].shift(1).fillna(0.0)
         
         # Save cache
         macro_df.to_csv(cache_path, index=False)

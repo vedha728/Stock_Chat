@@ -71,11 +71,12 @@ def predict_stock_action(feature_row: pd.DataFrame) -> dict:
 
 
 if __name__ == "__main__":
-    # Test prediction with mock features (18 features — updated to match current model)
+    # Test prediction with mock features (19 features — updated to match current model)
     feature_cols = [
         'RSI', 'MACD_Hist', 'MACD_Crossover',
         'Price_Above_MA50', 'Price_Above_MA200', 'Golden_Cross',
         'Volume_Ratio', 'Sentiment_Score', 'Positive_Headlines', 'Negative_Headlines',
+        'Sentiment_Available',
         'Multi_Timeframe_Alignment',
         'SP500_Return', 'Crude_Return', 'USD_INR_Return',
         'RSI_Slope', 'Price_Pct_5d', 'Price_Pct_20d', 'Volatility_10d'
@@ -93,6 +94,7 @@ if __name__ == "__main__":
         'Sentiment_Score': 0.05,
         'Positive_Headlines': 4,
         'Negative_Headlines': 3,
+        'Sentiment_Available': 1,
         'Multi_Timeframe_Alignment': 1,
         'SP500_Return': 0.005,
         'Crude_Return': -0.01,

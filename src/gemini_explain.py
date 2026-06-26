@@ -248,6 +248,7 @@ def generate_beginner_explanation(
             f"- HIGHLIGHT key words by writing them in CAPITAL LETTERS (example: PRICE IS GOING UP, DO NOT BUY, HOLD YOUR SHARES).\n"
             f"- Keep each point SHORT — maximum 3 sentences per point.\n"
             f"- Be direct. No long stories.\n"
+            f"- If the stock is above its 50-day average price (Price above 50-day average price: Yes) and its RSI momentum is high (RSI >= 60.0) but the final recommendation is HOLD, explain in the 'Why' section that the stock looks short-term extended and that the model prefers buying after a pullback (buy the dip) rather than chasing a stock that has already risen.\n"
             f"{query_instruction}\n\n"
 
             f"--- STOCK DATA ---\n"
@@ -286,7 +287,8 @@ def generate_beginner_explanation(
         )
 
         import time
-        max_retries = 3
+        keys = [k.strip() for k in raw_key.split(",") if k.strip()]
+        max_retries = max(3, len(keys))
         for attempt in range(max_retries):
             try:
                 current_key = _get_api_key(attempt)
@@ -308,11 +310,11 @@ def generate_beginner_explanation(
                     return raw_text, raw_text
             except Exception as ex:
                 err_msg = str(ex)
-                keys = [k.strip() for k in raw_key.split(",") if k.strip()]
                 if len(keys) > 1:
                     print(f"\n[!] Gemini API call failed on key {attempt+1}/{len(keys)}: {err_msg[:120]}. Rotating to next key...")
-                    time.sleep(0.5)
-                    continue
+                    if attempt < max_retries - 1:
+                        time.sleep(0.5)
+                        continue
                 else:
                     if attempt < max_retries - 1:
                         sleep_time = 5 * (attempt + 1)
@@ -369,7 +371,8 @@ def explain_educational_concept(user_input: str) -> str:
 
     try:
         import time
-        max_retries = 3
+        keys = [k.strip() for k in raw_key.split(",") if k.strip()]
+        max_retries = max(3, len(keys))
         for attempt in range(max_retries):
             try:
                 current_key = _get_api_key(attempt)
@@ -381,11 +384,11 @@ def explain_educational_concept(user_input: str) -> str:
                 return clean_markdown(response.text)
             except Exception as ex:
                 err_msg = str(ex)
-                keys = [k.strip() for k in raw_key.split(",") if k.strip()]
                 if len(keys) > 1:
                     print(f"\n[!] Gemini API call failed on key {attempt+1}/{len(keys)}: {err_msg[:120]}. Rotating to next key...")
-                    time.sleep(0.5)
-                    continue
+                    if attempt < max_retries - 1:
+                        time.sleep(0.5)
+                        continue
                 else:
                     if attempt < max_retries - 1:
                         sleep_time = 5 * (attempt + 1)
@@ -440,24 +443,25 @@ def generate_comparison_explanation(stocks: list[dict]) -> str:
         f"- NO markdown formatting (no **, no *, no #, no -).\n"
         f"- NO finance jargon (no bullish, bearish, MACD, etc.).\n"
         f"- HIGHLIGHT key points in CAPITAL LETTERS.\n"
-        f"- WRITE the entire AI Comparison Verdict line in CAPITAL LETTERS (example: RELIANCE INDUSTRIES LOOKS LIKE THE STRONGER PICK RIGHT NOW DUE TO ITS STABLE PROFITS AND LOWER DEBT).\n"
+        f"- WRITE the entire AI Comparison Verdict line in CAPITAL LETTERS (example: TCS LOOKS LIKE THE STRONGER PICK RIGHT NOW DUE TO ITS HIGHER PROFITABILITY AND LOWER DEBT).\n"
         f"- Keep it SHORT and CRISP (maximum 8 sentences total).\n"
-        f"- Provide a clear takeaway comparison: which one is better for value/growth, or are both mixed?\n\n"
+        f"- CLEARLY STATE in what way each stock is currently strong (e.g. explain that Stock A is strong in profitability/safety, while Stock B is strong in cheaper valuation/news sentiment).\n\n"
         f"--- STOCKS DATA ---\n"
         f"{stocks_prompt_data}"
         f"--- WRITE RESPONSE IN THIS EXACT FORMAT ---\n"
         f"AI Comparison Verdict:\n"
         f"[One sentence written entirely in CAPITAL LETTERS stating clearly which stock is currently the stronger pick or if they are equal/mixed.]\n\n"
-        f"Key Differences:\n"
-        f"1. Valuation & Profits: [Explain PE/ROE differences simply, highlight with CAPS]\n"
-        f"2. Trend & Big Investors: [Explain who has better support from big institutions / price trend]\n\n"
+        f"Key Strengths:\n"
+        f"• [Stock A Name] is strong in [Describe specific strength simply, highlight with CAPS]\n"
+        f"• [Stock B Name] is strong in [Describe specific strength simply, highlight with CAPS]\n\n"
         f"Bottom Line for Beginners:\n"
         f"[2 sentences of practical advice on what to watch for.]"
     )
 
     try:
         import time
-        max_retries = 3
+        keys = [k.strip() for k in raw_key.split(",") if k.strip()]
+        max_retries = max(3, len(keys))
         for attempt in range(max_retries):
             try:
                 current_key = _get_api_key(attempt)
@@ -469,11 +473,11 @@ def generate_comparison_explanation(stocks: list[dict]) -> str:
                 return clean_markdown(response.text)
             except Exception as ex:
                 err_msg = str(ex)
-                keys = [k.strip() for k in raw_key.split(",") if k.strip()]
                 if len(keys) > 1:
                     print(f"\n[!] Gemini API call failed on key {attempt+1}/{len(keys)}: {err_msg[:120]}. Rotating to next key...")
-                    time.sleep(0.5)
-                    continue
+                    if attempt < max_retries - 1:
+                        time.sleep(0.5)
+                        continue
                 else:
                     if attempt < max_retries - 1:
                         sleep_time = 5 * (attempt + 1)

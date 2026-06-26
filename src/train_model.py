@@ -154,7 +154,7 @@ def run_training_pipeline():
                 price_indicators_df = calculate_technical_indicators(stock_df)
 
                 # Merge with FII/DII flow and generate sentiment proxy
-                feature_df = compile_feature_matrix(price_indicators_df, fii_dii_df, macro_df=macro_df, is_training=True)
+                feature_df = compile_feature_matrix(price_indicators_df, fii_dii_df, macro_df=macro_df, is_training=True, ticker=ticker)
 
                 # Apply BUY/HOLD/SELL labels
                 labeled_df = generate_forward_labels(feature_df, forward_days=5, threshold=0.02)
@@ -202,11 +202,12 @@ def run_training_pipeline():
     master_df.to_csv("data/processed/master_training_dataset.csv", index=False)
     print("[+] Saved master training dataset to data/processed/master_training_dataset.csv")
     
-    # 3. Define features (X) and labels (y) — 18 features total
+    # 3. Define features (X) and labels (y) — 19 features total
     feature_cols = [
         'RSI', 'MACD_Hist', 'MACD_Crossover',
         'Price_Above_MA50', 'Price_Above_MA200', 'Golden_Cross',
         'Volume_Ratio', 'Sentiment_Score', 'Positive_Headlines', 'Negative_Headlines',
+        'Sentiment_Available',
         'Multi_Timeframe_Alignment',
         'SP500_Return', 'Crude_Return', 'USD_INR_Return',
         # Rolling window features (Issue #3 — sequence context for XGBoost)
@@ -289,7 +290,7 @@ def run_training_pipeline():
         "training_rows": int(master_df.shape[0]),
         "test_accuracy_pct": f"{xgb_acc*100:.2f}%",
         "cv_mean_accuracy_pct": f"{cv_scores.mean()*100:.2f}%",
-        "notes": "Trained with 18-feature XGBoost. Correct active tickers included in training."
+        "notes": "Trained with 19-feature XGBoost. Correct active tickers included in training."
     }
     
 if __name__ == "__main__":

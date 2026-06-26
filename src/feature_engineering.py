@@ -61,11 +61,13 @@ def generate_historical_sentiment_proxy(price_df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def compile_feature_matrix(price_df: pd.DataFrame, fii_dii_df: pd.DataFrame, macro_df: pd.DataFrame = None, is_training: bool = False) -> pd.DataFrame:
+def compile_feature_matrix(price_df: pd.DataFrame, fii_dii_df: pd.DataFrame, macro_df: pd.DataFrame = None, is_training: bool = False, ticker: str = None) -> pd.DataFrame:
     """
     Merges price, indicators, sentiment, and FII/DII data on 'Date'.
     Prepares the final features for the model.
     """
+    import os
+
     # Ensure Date columns are datetime objects or matching strings
     price_df = price_df.copy()
     fii_dii_df = fii_dii_df.copy()
@@ -75,9 +77,36 @@ def compile_feature_matrix(price_df: pd.DataFrame, fii_dii_df: pd.DataFrame, mac
     
     # 1. Handle news sentiment
     if is_training:
-        # Generate proxy sentiment historically
-        price_df = generate_historical_sentiment_proxy(price_df)
+        # Load real historical sentiment if available and ticker matches
+        merged_sentiment = False
+        if ticker is not None:
+            clean_ticker = ticker.strip().upper()
+            csv_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data/processed/curated_historical_sentiment.csv")
+            if os.path.exists(csv_path):
+                try:
+                    sent_df = pd.read_csv(csv_path)
+                    ticker_sent = sent_df[sent_df['Ticker'] == clean_ticker].copy()
+                    if not ticker_sent.empty:
+                        # Ensure date formats match (strip time if present)
+                        ticker_sent['Date'] = pd.to_datetime(ticker_sent['Date']).dt.date
+                        # Merge on Date
+                        price_df = pd.merge(price_df, ticker_sent[['Date', 'Sentiment_Score', 'Positive_Headlines', 'Negative_Headlines', 'Sentiment_Available']], on='Date', how='left')
+                        # Fill NaNs for dates outside the scraped range with neutral/unavailable defaults
+                        price_df['Sentiment_Score'] = price_df['Sentiment_Score'].fillna(0.0)
+                        price_df['Positive_Headlines'] = price_df['Positive_Headlines'].fillna(0.0).astype(int)
+                        price_df['Negative_Headlines'] = price_df['Negative_Headlines'].fillna(0.0).astype(int)
+                        price_df['Sentiment_Available'] = price_df['Sentiment_Available'].fillna(0.0).astype(int)
+                        merged_sentiment = True
+                except Exception as e:
+                    print(f"[Warning] Failed to load/merge curated sentiment for {ticker}: {e}")
         
+        # Fallback if sentiment file doesn't exist, ticker is None, or ticker wasn't found in the CSV
+        if not merged_sentiment:
+            price_df['Sentiment_Score'] = 0.0
+            price_df['Positive_Headlines'] = 0
+            price_df['Negative_Headlines'] = 0
+            price_df['Sentiment_Available'] = 0
+            
     # 2. Merge Price + Sentiment with FII/DII flow data
     # FII/DII data is macro-level daily data. We merge on Date.
     merged_df = pd.merge(price_df, fii_dii_df, on='Date', how='inner')
@@ -155,11 +184,12 @@ def compile_feature_matrix(price_df: pd.DataFrame, fii_dii_df: pd.DataFrame, mac
     daily_returns = merged_df['Close'].pct_change()
     merged_df['Volatility_10d'] = daily_returns.rolling(window=10).std().fillna(0.0) * 100
 
-    # Define features to output (18 total: 14 original + 4 new rolling features)
+    # Define features to output (19 total: 14 original + 1 sentiment available + 4 new rolling features)
     features = [
         'RSI', 'MACD_Hist', 'MACD_Crossover',
         'Price_Above_MA50', 'Price_Above_MA200', 'Golden_Cross',
         'Volume_Ratio', 'Sentiment_Score', 'Positive_Headlines', 'Negative_Headlines',
+        'Sentiment_Available',
         'Multi_Timeframe_Alignment',
         'SP500_Return', 'Crude_Return', 'USD_INR_Return',
         'RSI_Slope', 'Price_Pct_5d', 'Price_Pct_20d', 'Volatility_10d'
@@ -182,12 +212,26 @@ def prepare_inference_row(
     macro_returns: tuple
 ) -> pd.DataFrame:
     """
-    Constructs a single 23-feature row for real-time model inference.
+    Constructs a single 19-feature row for real-time model inference.
     Accepts the full price_indicators_df (not just latest row) so that
     rolling window features (RSI_Slope, Price_Pct_5d, Price_Pct_20d,
     Volatility_10d) can be accurately computed from recent history.
     """
-    sent_score, pos_count, neg_count = sentiment_summary
+    if len(sentiment_summary) == 4:
+        sent_score, pos_count, neg_count, sent_avail = sentiment_summary
+    else:
+        sent_score, pos_count, neg_count = sentiment_summary
+        sent_avail = 1 if (pos_count > 0 or neg_count > 0 or abs(sent_score) > 0.0) else 0
+
+    if sent_avail == 0:
+        sent_score = 0.0
+        pos_count = 0
+        neg_count = 0
+        
+    # Apply presence-preserving scaling to match training daily counts
+    scaled_pos = max(pos_count / 5.0, 1.0) if pos_count > 0 else 0.0
+    scaled_neg = max(neg_count / 5.0, 1.0) if neg_count > 0 else 0.0
+        
     sp500_ret, crude_ret, usdinr_ret = macro_returns
 
     # Use the last row for point-in-time values
@@ -219,7 +263,7 @@ def prepare_inference_row(
         volatility_10d = 0.0
     # ─────────────────────────────────────────────────────────────────────
 
-    # Construct dict of exactly 18 features matching training dataset
+    # Construct dict of exactly 19 features matching training dataset
     feature_row = {
         'RSI':                      float(latest['RSI']),
         'MACD_Hist':                float(latest['MACD_Hist']),
@@ -229,8 +273,9 @@ def prepare_inference_row(
         'Golden_Cross':             int(latest['Golden_Cross']),
         'Volume_Ratio':             float(latest['Volume_Ratio']),
         'Sentiment_Score':          float(sent_score),
-        'Positive_Headlines':       int(pos_count),
-        'Negative_Headlines':       int(neg_count),
+        'Positive_Headlines':       float(scaled_pos),
+        'Negative_Headlines':       float(scaled_neg),
+        'Sentiment_Available':      int(sent_avail),
         'Multi_Timeframe_Alignment':int(mt_alignment),
         'SP500_Return':             float(sp500_ret),
         'Crude_Return':             float(crude_ret),
@@ -242,3 +287,4 @@ def prepare_inference_row(
     }
 
     return pd.DataFrame([feature_row])
+
