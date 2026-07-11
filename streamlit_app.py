@@ -92,14 +92,148 @@ st.markdown("""
         color: #E2E8F0 !important;
     }
     
-    /* Title bar styling */
+    /* Style the radio title header and reduce its margin */
+    div[data-testid="stRadio"] {
+        margin-bottom: 0px !important;
+        padding-bottom: 0px !important;
+    }
+    div[data-testid="stRadio"] [data-testid="stWidgetLabel"] p {
+        font-size: 11px !important;
+        font-weight: 700 !important;
+        color: #94A3B8 !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.8px !important;
+        margin-bottom: 8px !important;
+    }
+    
+    /* Reset title container label styles */
+    div[data-testid="stRadio"] label[data-testid="stWidgetLabel"] {
+        background: transparent !important;
+        border: none !important;
+        padding: 0 !important;
+        margin-bottom: 8px !important;
+        display: block !important;
+        box-shadow: none !important;
+        width: auto !important;
+    }
+    
+    /* Style radio selector labels as block buttons, excluding the title label */
+    div[data-testid="stRadio"] label:not([data-testid="stWidgetLabel"]) {
+        background-color: #1F2937 !important;
+        border: 1px solid #374151 !important;
+        border-radius: 8px !important;
+        padding: 12px 16px !important;
+        margin-bottom: 8px !important;
+        display: flex !important;
+        align-items: center !important;
+        cursor: pointer !important;
+        transition: all 0.2s ease !important;
+        width: 100% !important;
+    }
+    
+    /* Hover effect */
+    div[data-testid="stRadio"] label:not([data-testid="stWidgetLabel"]):hover {
+        background-color: #374151 !important;
+        border-color: #4B5563 !important;
+    }
+    
+    /* Active option styling (linear-gradient highlights) */
+    div[data-testid="stRadio"] label:not([data-testid="stWidgetLabel"]):has(input:checked) {
+        background: linear-gradient(90deg, #059669 0%, #10B981 100%) !important;
+        border-color: #10B981 !important;
+        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2) !important;
+    }
+    
+    /* Hide the default radio circle input */
+    div[data-testid="stRadio"] label:not([data-testid="stWidgetLabel"]) > div:first-child {
+        display: none !important;
+    }
+    
+    /* Override font styles inside the radio cards */
+    div[data-testid="stRadio"] label:not([data-testid="stWidgetLabel"]) p,
+    div[data-testid="stRadio"] label:not([data-testid="stWidgetLabel"]) span,
+    div[data-testid="stRadio"] label:not([data-testid="stWidgetLabel"]) div {
+        color: #FFFFFF !important;
+        font-size: 14px !important;
+        font-weight: 600 !important;
+    }
+    
+    /* Title bar styling (Clean, Professional Dark Slate) */
     .title-banner {
-        padding: 20px;
-        background: linear-gradient(135deg, #1E293B 0%, #0F172A 100%);
-        border-radius: 12px;
-        border: 1px solid #1E293B;
-        text-align: center;
-        margin-bottom: 25px;
+        padding: 28px !important;
+        background: linear-gradient(135deg, #111827 0%, #1F2937 100%) !important;
+        border: 1px solid #374151 !important;
+        border-top: 3px solid #10B981 !important; /* Premium Emerald Top Accent */
+        border-radius: 12px !important;
+        text-align: center !important;
+        margin-bottom: 30px !important;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4) !important;
+    }
+    
+    /* Styled Quick Query buttons (Professional outlined pills) */
+    button,
+    .stButton button,
+    div[data-testid="stButton"] button,
+    button[kind="secondary"],
+    button[data-testid="stBaseButton-secondary"],
+    button[data-testid^="stBaseButton"] {
+        background: #1F2937 !important;
+        color: #F3F4F6 !important;
+        border: 1px solid #374151 !important;
+        border-radius: 6px !important;
+        padding: 8px 16px !important;
+        font-size: 14px !important;
+        font-weight: 500 !important;
+        width: 100% !important;
+        display: block !important;
+        text-align: center !important;
+        box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    }
+    div.stButton button:hover,
+    button:hover,
+    button[kind="secondary"]:hover,
+    button[data-testid="stBaseButton-secondary"]:hover,
+    button[data-testid^="stBaseButton"]:hover {
+        background: #374151 !important;
+        border-color: #4B5563 !important;
+        color: #FFFFFF !important;
+    }
+    div.stButton button:active,
+    button:active,
+    button[kind="secondary"]:active,
+    button[data-testid="stBaseButton-secondary"]:active {
+        background: #111827 !important;
+        border-color: #1F2937 !important;
+    }
+    
+    /* Ensure inner text elements inherit the button color rules */
+    button p,
+    button span,
+    button[data-testid^="stBaseButton"] p,
+    button[data-testid^="stBaseButton"] span {
+        color: #F3F4F6 !important;
+        font-size: 14px !important;
+        font-weight: 500 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+    button:hover p,
+    button:hover span,
+    button[data-testid^="stBaseButton"]:hover p,
+    button[data-testid^="stBaseButton"]:hover span {
+        color: #FFFFFF !important;
+    }
+    
+    /* Custom input box styling (glowing focus state) */
+    div[data-baseweb="input"] {
+        border-radius: 6px !important;
+        background-color: #111827 !important;
+        border: 1px solid #374151 !important;
+        transition: border-color 0.2s !important;
+    }
+    div[data-baseweb="input"]:focus-within {
+        border-color: #10B981 !important;
     }
     
     /* Custom Glassmorphism Card styling */
@@ -179,10 +313,24 @@ app_mode = st.sidebar.radio(
     ["🔍 Stock Analysis & Chat", "📊 Side-by-Side Comparison", "📈 Strategy Backtesting", "📚 Learn Basics"]
 )
 
-st.sidebar.markdown("---")
+st.sidebar.markdown("<hr style='margin: 15px 0 10px 0; border-top: 1px solid rgba(255, 255, 255, 0.1);'>", unsafe_allow_html=True)
+st.sidebar.markdown("<p style='margin: 0 0 8px 0; font-size: 11px; font-weight: 700; color: #94A3B8; text-transform: uppercase; letter-spacing: 0.8px;'>Supported Stocks Check</p>", unsafe_allow_html=True)
+
+from data_collector import TICKER_NAME_MAP
+
+# Sidebar text input search
+search_query = st.sidebar.text_input("Verify stock availability:", key="sidebar_stock_search", placeholder="e.g. Reliance, TCS, SBI...")
+
+if search_query:
+    resolved_ticker, resolved_name = extract_ticker(search_query)
+    if resolved_ticker and resolved_ticker in TICKER_NAME_MAP:
+        st.sidebar.success(f"✅ Supported! You can search and analyze {resolved_name}.")
+    else:
+        st.sidebar.warning("❌ Currently this stock is not available in the service. Try some other.")
+
 st.sidebar.markdown("""
-### Supported Stocks:
-TCS, Reliance, Wipro, Infosys, SBI, HDFC Bank, Adani Ports, Tata Steel, Tata Power, Maruti Suzuki, L&T, Airtel, and all other major NSE indices (via auto-Yahoo Finance fetch).
+**Quick Examples:**
+TCS, Reliance, Wipro, Infosys, SBI, HDFC Bank, Adani Ports, Tata Steel, Tata Power, Maruti Suzuki, L&T, Airtel.
 """)
 
 # ─────────────────────────────────────────────────────────────
@@ -190,8 +338,13 @@ TCS, Reliance, Wipro, Infosys, SBI, HDFC Bank, Adani Ports, Tata Steel, Tata Pow
 # ─────────────────────────────────────────────────────────────
 st.markdown("""
 <div class="title-banner">
-    <h1 style="margin: 0; color: #38BDF8;">📊 Multi-Signal AI Stock Advisory</h1>
-    <p style="margin: 5px 0 0 0; color: #94A3B8; font-size: 15px;">Leverages Technical Charts, News Sentiment, Institutional Flows, and Fundamental Ratios via XGBoost & AI</p>
+    <h1 style="margin: 0; font-size: 32px; font-weight: 700; letter-spacing: -0.5px; display: inline-flex; align-items: center; justify-content: center;">
+        <img src="https://img.icons8.com/fluency/96/stocks.png" style="width: 42px; height: 42px; margin-right: 12px; vertical-align: middle; filter: drop-shadow(0 2px 8px rgba(16, 185, 129, 0.35));" />
+        <span style="background: linear-gradient(90deg, #10B981, #34D399); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Multi-Signal AI Stock Advisory</span>
+    </h1>
+    <p style="margin: 8px 0 0 0; color: #94A3B8; font-size: 15px; font-weight: 400; letter-spacing: 0.2px;">
+        Leveraging <span style="color: #6EE7B7; font-weight: 500;">Technical Charts</span>, <span style="color: #6EE7B7; font-weight: 500;">News Sentiment</span>, <span style="color: #6EE7B7; font-weight: 500;">Institutional Flows</span>, and <span style="color: #6EE7B7; font-weight: 500;">Fundamental Ratios</span>
+    </p>
 </div>
 """, unsafe_allow_html=True)
 
@@ -210,25 +363,25 @@ def get_verdict_style(rec: str, low_conf: bool):
 # MODE 1: STOCK ANALYSIS & CHAT
 # ─────────────────────────────────────────────────────────────
 if app_mode == "🔍 Stock Analysis & Chat":
-    st.write("### 🔍 Search Stock or Ask a Question")
-    
-    # Text input box mimicking the terminal chat interface
-    chat_input = st.text_input(
-        "Type your query below:",
-        placeholder="e.g., Should I buy TCS? or analyze Reliance, or what is the news on Wipro?",
-        help="Type any stock name or natural query like: 'Is L&T stock good to buy?'"
-    )
-    
-    # Simple examples for user guidance
-    cols = st.columns(4)
-    with cols[0]:
-        if st.button("Should I buy TCS?"): chat_input = "Should I buy TCS?"
-    with cols[1]:
-        if st.button("Analyze Maruti Suzuki"): chat_input = "Analyze Maruti Suzuki"
-    with cols[2]:
-        if st.button("News about Wipro"): chat_input = "News about Wipro"
-    with cols[3]:
-        if st.button("Is L&T overextended?"): chat_input = "Is L&T overextended?"
+    col_left, col_center, col_right = st.columns([1, 2.5, 1])
+    with col_center:
+        st.write("### 🔍 Search Stock or Ask a Question")
+        
+        # Text input box mimicking the terminal chat interface
+        chat_input = st.text_input(
+            "Type your query below:",
+            placeholder="e.g., Should I buy TCS? or analyze Reliance, or what is the news on Wipro?",
+            help="Type any stock name or natural query like: 'Is L&T stock good to buy?'"
+        )
+        
+        # Simple examples for user guidance
+        cols = st.columns(3)
+        with cols[0]:
+            if st.button("Should I buy TCS?", use_container_width=True): chat_input = "Should I buy TCS?"
+        with cols[1]:
+            if st.button("Should I sell Reliance?", use_container_width=True): chat_input = "Should I sell Reliance?"
+        with cols[2]:
+            if st.button("News about Wipro", use_container_width=True): chat_input = "News about Wipro"
 
     if chat_input:
         # Determine intent tags
