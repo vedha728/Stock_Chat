@@ -154,7 +154,7 @@ try:
     inst_summary = analyze_institutional_signals(fii_vals, dii_vals)
 
     # Dummy sentiment (same as chatbot fallback)
-    sentiment_summary = (0.0, 0, 0)
+    sentiment_summary = (0.0, 0, 0, 0)
     # Mock macro returns
     macro_returns = (0.005, -0.01, 0.002)
     feature_row = prepare_inference_row(indicators_df, inst_summary, sentiment_summary, macro_returns)
@@ -224,7 +224,7 @@ except Exception as e:
 # ─────────────────────────────────────────────
 # 10. Educational Concept Explainer
 # ─────────────────────────────────────────────
-print("\n[10] EDUCATIONAL CONCEPT EXPLAINER TEST (Gemini)")
+print("\n[10] EDUCATIONAL CONCEPT EXPLAINER TEST (AI)")
 try:
     from gemini_explain import explain_educational_concept
     # Test a simple query
@@ -242,7 +242,7 @@ except Exception as e:
 # ─────────────────────────────────────────────
 # 11. Side-by-Side Stock Comparison
 # ─────────────────────────────────────────────
-print("\n[11] SIDE-BY-SIDE STOCK COMPARISON TEST (Gemini)")
+print("\n[11] SIDE-BY-SIDE STOCK COMPARISON TEST (AI)")
 try:
     from data_collector import extract_multiple_tickers
     from gemini_explain import generate_comparison_explanation
@@ -347,6 +347,7 @@ try:
         'RSI': 35.0, 'MACD_Hist': 0.12, 'MACD_Crossover': 1,
         'Price_Above_MA50': 1, 'Price_Above_MA200': 1, 'Golden_Cross': 1,
         'Volume_Ratio': 1.8, 'Sentiment_Score': 0.65, 'Positive_Headlines': 8, 'Negative_Headlines': 1,
+        'Sentiment_Available': 1,
         'Multi_Timeframe_Alignment': 1,
         'SP500_Return': 0.005, 'Crude_Return': -0.01, 'USD_INR_Return': 0.002,
         'RSI_Slope': 5.2, 'Price_Pct_5d': 1.5, 'Price_Pct_20d': 3.2, 'Volatility_10d': 1.1

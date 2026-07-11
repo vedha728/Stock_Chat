@@ -16,7 +16,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "src"))
 from data_collector import extract_ticker, extract_multiple_tickers, fetch_stock_price, fetch_news_headlines, fetch_fundamentals, get_latest_macro_returns
 
 from indicators import calculate_technical_indicators
-from sentiment import analyze_news_sentiment
+from sentiment import analyze_news_sentiment, deduplicate_headlines
 from institutional import fetch_latest_fii_dii, analyze_institutional_signals
 from feature_engineering import prepare_inference_row
 from predict import predict_stock_action
@@ -33,21 +33,21 @@ def print_header():
     console.print()
     banner = Text(
         "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-        " 📊  MULTI-SIGNAL AI STOCK ADVISORY CHATBOT (INDIAN MARKET BEGINNERS)  📊 \n"
+        " 📊  MULTI-SIGNAL AI STOCK ADVISORY CHATBOT  📊 \n"
         "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
         style="bold cyan",
         justify="center"
     )
     console.print(banner)
     console.print(
-        "[dim]  Designed for Intel i3 CPU | CPU-friendly ML Classifier | Explainable AI (Gemini 1.5)  [/dim]\n",
-        justify="center"
-    )
-    console.print(
-        "  [bold green]Commands:[/bold green]\n"
-        "  • Ask a question: [bold white]'Should I buy Tata Motors today?'[/bold white] or [bold white]'Reliance'[/bold white]\n"
-        "  • Run a Backtest: [bold white]'/backtest TCS'[/bold white] or type [bold white]'backtest TCS'[/bold white]\n"
-        "  • Exit: [bold red]'exit'[/bold red] or [bold red]'quit'[/bold red]\n"
+        "  [bold green]Supported Queries & Features:[/bold green]\n"
+        "  • [bold white]Stock Analysis[/bold white] : Ask about buy/hold/sell (e.g., [bold cyan]'Should I buy TCS?'[/bold cyan])\n"
+        "  • [bold white]Stock News[/bold white]     : Get latest news & sentiment (e.g., [bold cyan]'News about Wipro'[/bold cyan])\n"
+        "  • [bold white]Compare Stocks[/bold white] : Side-by-side comparison (e.g., [bold cyan]'Compare TCS and Wipro'[/bold cyan])\n"
+        "  • [bold white]Backtesting[/bold white]    : Run 1-year simulations (e.g., [bold cyan]'backtest TCS'[/bold cyan] or [bold cyan]'/backtest TCS'[/bold cyan])\n"
+        "  • [bold white]Learn Basics[/bold white]   : Ask about financial terms (e.g., [bold cyan]'What is P/E Ratio?'[/bold cyan])\n\n"
+        "  [bold red]System Control:[/bold red]\n"
+        "  • [bold white]Exit[/bold white]           : Type [bold red]'exit'[/bold red] or [bold red]'quit'[/bold red] to close the session\n"
     )
     console.print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
 
@@ -487,8 +487,22 @@ def display_prediction_report(ticker: str, company: str, price: float, result: d
         display_score_breakdown(technical_summary, sentiment_score, fii_dii_summary, fundamentals, result)
 
     # 5. Gemini Explanation Output
+    is_rising_hold = (
+        technical_summary.get("Price_Above_MA50", 0) == 1 and
+        technical_summary.get("RSI", 50.0) >= 60.0 and
+        technical_summary.get("Price_Pct_5d", 0.0) > 0.0 and
+        buy_pct < 30.0
+    )
+    if is_rising_hold:
+        note_text = (
+            "\n\n💡 [bold yellow]Strategy Note:[/bold yellow] This stock has already moved up recently and looks a bit extended. "
+            "Our model favors buying during pullbacks (mean-reversion / buy-the-dip) rather than chasing stocks that have already risen, "
+            "since there is statistically less room left for a further 2%+ gain in the next 5 days."
+        )
+        beginner_explanation += note_text
+
     console.print()
-    console.print(Panel(beginner_explanation, title="🧠 AI Explanation & Strategy Guide (For Beginners)", border_style="cyan"))
+    console.print(Panel(beginner_explanation, title="🧠 Simple Explanation Guide", border_style="cyan"))
 
 
 def display_comparison_report(stocks: list[dict], ai_summary: str):
@@ -692,7 +706,7 @@ def main_loop(verbose: bool = False):
                 )
                 
                 if is_question:
-                    with console.status("[bold green]Consulting Gemini on your question...[/bold green]") as status:
+                    with console.status("[bold green]Consulting Sources...[/bold green]") as status:
                         try:
                             explanation = explain_educational_concept(user_input)
                             # Print beautiful panel with custom title
@@ -732,7 +746,9 @@ def main_loop(verbose: bool = False):
                                 console.print("No recent news found.")
                             else:
                                 for i, h in enumerate(headlines[:10], 1):
-                                    console.print(f"  {i}. {h}")
+                                    console.print(f"  {i}. [bold white]{h['title']}[/bold white]")
+                                    console.print(f"     Source: [dim]{h['source']}[/dim] | [link={h['url']}][blue underline]Read Article 🔗[/blue underline][/link]")
+                                    console.print(f"     Summary: {h['description']}\n")
                             console.print()
                         except Exception as err:
                             console.print(f"[bold red]❌ News Fetch Error:[/bold red] {err}")
@@ -894,11 +910,16 @@ def main_loop(verbose: bool = False):
                         # Step 6: Analyze News Sentiment (non-critical — fallback to neutral)
                         status.update("[bold green]Running sentiment analyzer on headlines...[/bold green]")
                         try:
-                            sentiment_summary = analyze_news_sentiment(headlines)
-                            sent_score, pos_count, neg_count = sentiment_summary
+                            if headlines:
+                                titles_list = [h["title"] for h in headlines]
+                                sent_score, pos_count, neg_count = analyze_news_sentiment(titles_list)
+                                sentiment_summary = (sent_score, pos_count, neg_count, 1)
+                            else:
+                                sentiment_summary = (0.0, 0, 0, 0)
+                                sent_score, pos_count, neg_count = 0.0, 0, 0
                         except Exception as sent_err:
                             console.print(f"[dim yellow]⚠️  Sentiment analysis failed ({sent_err}). Using neutral sentiment.[/dim yellow]")
-                            sentiment_summary = (0.0, 3, 3)
+                            sentiment_summary = (0.0, 0, 0, 0)
                             sent_score = 0.0
 
                         # Step 7: Fetch global macro returns (non-critical — fallback to zeros)
@@ -914,23 +935,30 @@ def main_loop(verbose: bool = False):
                         feature_row = prepare_inference_row(price_indicators_df, fii_dii_summary, sentiment_summary, macro_returns)
                         ml_result = predict_stock_action(feature_row)
 
-                        # Step 9: Explain via Gemini
-                        status.update("[bold green]Translating findings via Gemini AI...[/bold green]")
+                        # Define unified technical summary dictionary containing Price_Pct_5d
+                        tech_summary_dict = {
+                            **latest_price_row.to_dict(),
+                            "Price_Pct_5d": float((price_indicators_df['Close'].iloc[-1] / price_indicators_df['Close'].iloc[-6] - 1) * 100) if len(price_indicators_df) >= 6 else 0.0
+                        }
+
+                        # Step 9: Explain via AI
+                        status.update("[bold green]Generating AI explanation...[/bold green]")
                         try:
+                            titles_list = [h["title"] for h in headlines]
                             model_analysis, beginner_explanation = generate_beginner_explanation(
                                 ticker,
                                 company_name,
                                 current_price,
                                 ml_result,
-                                latest_price_row.to_dict(),
+                                tech_summary_dict,
                                 sent_score,
-                                headlines,
+                                titles_list,
                                 fii_dii_summary,
                                 fundamentals,
                                 user_input=user_input
                             )
                         except Exception as gemini_err:
-                            console.print(f"[dim yellow]⚠️  Gemini AI explanation unavailable ({gemini_err}). Showing raw analysis.[/dim yellow]")
+                            console.print(f"[dim yellow]⚠️  AI explanation unavailable ({gemini_err}). Showing raw analysis.[/dim yellow]")
                             model_analysis = (
                                 "Factors Favouring Buy (+):\n"
                                 "  • [RSI] Momentum is neutral.\n\n"
@@ -945,7 +973,7 @@ def main_loop(verbose: bool = False):
                                 f"Current price: ₹{current_price:,.2f}\n"
                                 f"ML Signal: {ml_result.get('Recommendation', 'N/A')} "
                                 f"({ml_result.get('Confidence', 0)*100:.1f}% confidence)\n"
-                                f"[AI explanation unavailable — Gemini API may be down or key missing]"
+                                f"[AI explanation unavailable — API may be down or key missing]"
                             )
 
                         # Step 10: Output beautifully formatted dashboard
@@ -954,7 +982,7 @@ def main_loop(verbose: bool = False):
                             company_name,
                             current_price,
                             ml_result,
-                            latest_price_row.to_dict(),
+                            tech_summary_dict,
                             sent_score,
                             fii_dii_summary,
                             model_analysis,
@@ -994,8 +1022,10 @@ def main_loop(verbose: bool = False):
                             fii_dii_summary = analyze_institutional_signals(fii_net_list, dii_net_list)
                             
                             fundamentals = fetch_fundamentals(ticker)
-                            sentiment_summary = analyze_news_sentiment(headlines)
-                            sent_score, _, _ = sentiment_summary
+                            titles_list = [h["title"] for h in headlines]
+                            sent_score, pos_count, neg_count = analyze_news_sentiment(titles_list)
+                            sent_avail = 1 if headlines else 0
+                            sentiment_summary = (sent_score, pos_count, neg_count, sent_avail)
                             
                             feature_row = prepare_inference_row(price_indicators_df, fii_dii_summary, sentiment_summary, macro_returns)
                             ml_result = predict_stock_action(feature_row)

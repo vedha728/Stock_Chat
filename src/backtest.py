@@ -44,8 +44,8 @@ def run_backtest(ticker: str) -> dict:
 
     model = joblib.load(model_path)
 
-    # Verify the model has the expected number of features (18)
-    expected_features = 18
+    # Verify the model has the expected number of features (19)
+    expected_features = 19
     if hasattr(model, 'n_features_in_') and model.n_features_in_ != expected_features:
         raise ValueError(
             f"Model has {model.n_features_in_} features, but backtest expects {expected_features}. "
@@ -105,13 +105,14 @@ def run_backtest(ticker: str) -> dict:
         })
 
     price_indicators_df = calculate_technical_indicators(stock_df)
-    feature_df = compile_feature_matrix(price_indicators_df, fii_dii_df, macro_df=macro_df, is_training=True)
+    feature_df = compile_feature_matrix(price_indicators_df, fii_dii_df, macro_df=macro_df, is_training=True, ticker=ticker)
 
     # 4. Predict signals day-by-day — WITH confidence threshold applied (same as live chatbot)
     feature_cols = [
         'RSI', 'MACD_Hist', 'MACD_Crossover',
         'Price_Above_MA50', 'Price_Above_MA200', 'Golden_Cross',
         'Volume_Ratio', 'Sentiment_Score', 'Positive_Headlines', 'Negative_Headlines',
+        'Sentiment_Available',
         'Multi_Timeframe_Alignment',
         'SP500_Return', 'Crude_Return', 'USD_INR_Return',
         # Rolling window features (Issue #3 — sequence context for XGBoost)
@@ -237,7 +238,7 @@ def run_backtest(ticker: str) -> dict:
 
 if __name__ == "__main__":
     try:
-        report = run_backtest("TATAMOTORS.NS")
+        report = run_backtest("TCS.NS")
         print("\nBacktest Summary Report:")
         for k, v in report.items():
             if isinstance(v, float):

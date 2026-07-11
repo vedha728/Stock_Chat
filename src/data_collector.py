@@ -631,13 +631,61 @@ def fetch_stock_price(ticker: str) -> pd.DataFrame:
     return df
 
 
-def fetch_news_headlines(ticker: str, company_name: str) -> list[str]:
+def clean_and_truncate_description(desc: str) -> str:
     """
-    Fetches news headlines mentioning the stock from the last 5 days.
-    Primary: NewsAPI
-    Fallback: Yahoo Finance RSS feed (no API key needed)
+    Cleans HTML tags and truncates the description to only complete sentences,
+    ensuring a clean closure and a short, clear summary.
     """
+    import re
+    # Remove HTML tags
+    desc_clean = re.sub(r'<[^<]+?>', '', desc).strip()
+    if not desc_clean:
+        return "Click the link to read the full article."
+        
+    # Split into sentences using a regex (split on period/question/exclamation followed by space or end)
+    sentences = re.split(r'(?<=[.!?])\s+', desc_clean)
+    
+    complete_sentences = []
+    for s in sentences:
+        s = s.strip()
+        if not s:
+            continue
+        # A sentence is complete if it ends with a punctuation mark (., ?, !) and doesn't end with ellipsis "..." or ".."
+        if s[-1] in ['.', '?', '!'] and not s.endswith('..') and not s.endswith('...'):
+            complete_sentences.append(s)
+        else:
+            break
+            
+    if complete_sentences:
+        # Join the complete sentences. Limit total length to 220 chars.
+        summary = " ".join(complete_sentences)
+        if len(summary) > 220:
+            if len(complete_sentences[0]) <= 220:
+                summary = complete_sentences[0]
+            else:
+                summary = summary[:217] + "..."
+        return summary
+    else:
+        # Fallback if no complete sentences found (remove trailing dots/metadata and append a single period)
+        desc_clean = re.sub(r'\s*\.+\s*$', '', desc_clean)
+        desc_clean = re.sub(r'\s*\[\+\d+\s+chars\]$', '', desc_clean)
+        if desc_clean:
+            return desc_clean.strip() + "."
+        return "Click the link to read the full article."
+
+
+def fetch_news_headlines(ticker: str, company_name: str) -> list[dict]:
+    """
+    Fetches news articles mentioning the stock from the last 5 days.
+    Combines NewsAPI and Yahoo Finance RSS feed to ensure a rich list of 5-8 articles.
+    Each article is returned as a dictionary:
+      {"title": str, "url": str, "source": str, "description": str}
+    """
+    import xml.etree.ElementTree as ET
+    import re
+    
     headlines = []
+    seen_titles = set()
     
     # Calculate timestamps for last 5 days
     now = datetime.datetime.now()
@@ -646,15 +694,52 @@ def fetch_news_headlines(ticker: str, company_name: str) -> list[str]:
 
     news_api_key = os.getenv("NEWS_API_KEY")
     
+    def normalize_title(t: str) -> str:
+        # Lowercase, keep only alphanumeric characters for comparison
+        return re.sub(r'[^a-z0-9]', '', t.lower())
+    
     # 1. Primary: NewsAPI (only if key is present and not default placeholder)
     if news_api_key and "PLACEHOLDER" not in news_api_key:
         try:
             print("[*] Fetching news from NewsAPI...")
-            # Search query uses both company name and ticker
             query = f'"{company_name}" OR "{ticker.split(".")[0]}"'
+            
+            root_domains = (
+                "indiatimes.com,moneycontrol.com,livemint.com,thehindubusinessline.com,"
+                "financialexpress.com,business-standard.com,reuters.com,bloomberg.com,"
+                "cnbctv18.com,ndtvprofit.com,yahoo.com"
+            )
+            
+            ALLOWED_SUBDOMAINS = {
+                "economictimes.indiatimes.com",
+                "m.economictimes.com",
+                "moneycontrol.com",
+                "www.moneycontrol.com",
+                "livemint.com",
+                "www.livemint.com",
+                "thehindubusinessline.com",
+                "www.thehindubusinessline.com",
+                "financialexpress.com",
+                "www.financialexpress.com",
+                "business-standard.com",
+                "www.business-standard.com",
+                "reuters.com",
+                "www.reuters.com",
+                "bloomberg.com",
+                "www.bloomberg.com",
+                "cnbctv18.com",
+                "www.cnbctv18.com",
+                "ndtvprofit.com",
+                "www.ndtvprofit.com",
+                "finance.yahoo.com"
+            }
+            
+            EXCLUDE_KEYWORDS = ["harassment", "sexual", "assault", "bail", "arrest", "accused", "court", "nida khan"]
+            
             url = (
                 f"https://newsapi.org/v2/everything?"
-                f"q={quote_plus(query)}&"
+                f"qInTitle={quote_plus(query)}&"
+                f"domains={root_domains}&"
                 f"from={from_date_str}&"
                 f"language=en&"
                 f"sortBy=relevance&"
@@ -666,35 +751,87 @@ def fetch_news_headlines(ticker: str, company_name: str) -> list[str]:
                 articles = response.json().get("articles", [])
                 for article in articles:
                     title = article.get("title")
+                    url_str = article.get("url")
+                    source_name = article.get("source", {}).get("name", "Financial News")
+                    desc = article.get("description") or ""
+                    
                     if title and "[Removed]" not in title:
-                        headlines.append(title)
+                        # Parse domain from URL
+                        domain = url_str.split("/")[2] if url_str else "Unknown"
+                        
+                        # Apply python domain filter
+                        if domain not in ALLOWED_SUBDOMAINS:
+                            continue
+                            
+                        # Apply python keyword filter
+                        title_lower = title.lower()
+                        if any(w in title_lower for w in EXCLUDE_KEYWORDS):
+                            continue
+                            
+                        norm = normalize_title(title)
+                        if norm not in seen_titles:
+                            seen_titles.add(norm)
+                            desc_clean = clean_and_truncate_description(desc)
+                            headlines.append({
+                                "title": title,
+                                "url": url_str or "",
+                                "source": source_name,
+                                "description": desc_clean
+                            })
                 print(f"[+] Retrieved {len(headlines)} headlines from NewsAPI.")
         except Exception as e:
             print(f"[Warning] NewsAPI fetch failed: {e}. Falling back to Yahoo Finance RSS.")
             
-    # 2. Fallback: Yahoo Finance RSS (no key required, returns recent headlines)
-    if not headlines:
+    # 2. Supplement/Fallback: Yahoo Finance RSS (if NewsAPI returned fewer than 5 headlines)
+    if len(headlines) < 5:
         try:
-            print("[*] Fetching news from Yahoo Finance RSS...")
+            print(f"[*] Supplementing with Yahoo Finance RSS (currently have {len(headlines)} articles)...")
             url = f"https://finance.yahoo.com/rss/headline?s={ticker}"
             headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
             response = requests.get(url, headers=headers, timeout=5)
             
             if response.status_code == 200:
-                # Parse XML RSS Feed
                 root = ET.fromstring(response.content)
+                ticker_clean = ticker.split(".")[0].lower()
+                comp_clean = company_name.lower()
+                
+                raw_rss_count = 0
+                added_rss_count = 0
                 for item in root.findall(".//item"):
-                    title = item.find("title")
-                    if title is not None and title.text:
-                        # Clean RSS text if needed
-                        headlines.append(title.text)
-                print(f"[+] Retrieved {len(headlines)} headlines from Yahoo Finance RSS.")
+                    title_elem = item.find("title")
+                    link_elem = item.find("link")
+                    desc_elem = item.find("description")
+                    
+                    if title_elem is not None and title_elem.text:
+                        raw_rss_count += 1
+                        title_text = title_elem.text
+                        title_lower = title_text.lower()
+                        
+                        # Enforce strict title matching to keep only relevant articles
+                        has_match = (
+                            comp_clean in title_lower or
+                            re.search(rf"\b{re.escape(ticker_clean)}\b", title_lower) is not None
+                        )
+                        if has_match:
+                            norm = normalize_title(title_text)
+                            if norm not in seen_titles:
+                                url_text = link_elem.text if link_elem is not None else ""
+                                desc_text = desc_elem.text if desc_elem is not None else ""
+                                desc_clean = clean_and_truncate_description(desc_text)
+                                    
+                                seen_titles.add(norm)
+                                headlines.append({
+                                    "title": title_text,
+                                    "url": url_text,
+                                    "source": "Yahoo Finance",
+                                    "description": desc_clean
+                                })
+                                added_rss_count += 1
+                print(f"[+] Retrieved {raw_rss_count} raw RSS headlines, added {added_rss_count} unique matching articles.")
         except Exception as e:
-            print(f"[Error] Failed to fetch news from RSS fallback: {e}")
+            print(f"[Error] Failed to fetch news from RSS: {e}")
             
-    # Remove duplicate headlines and return
-    unique_headlines = list(set(headlines))[:50]
-    return unique_headlines
+    return headlines[:15]
 
 def fetch_fundamentals(ticker: str) -> dict:
     """
@@ -801,6 +938,9 @@ def fetch_global_macro_data(start_date: str, end_date: str) -> pd.DataFrame:
     macro_df = macro_df.sort_values('Date').reset_index(drop=True)
     macro_df[['SP500_Return', 'Crude_Return', 'USD_INR_Return']] = macro_df[['SP500_Return', 'Crude_Return', 'USD_INR_Return']].ffill().fillna(0.0)
     
+    # Shift macro return columns by 1 trading day to resolve timezone lag (2A)
+    macro_df[['SP500_Return', 'Crude_Return', 'USD_INR_Return']] = macro_df[['SP500_Return', 'Crude_Return', 'USD_INR_Return']].shift(1).fillna(0.0)
+    
     return macro_df
 
 
@@ -862,6 +1002,9 @@ def get_latest_macro_returns() -> tuple[float, float, float]:
         
         macro_df = macro_df.sort_values('Date').reset_index(drop=True)
         macro_df[['SP500_Return', 'Crude_Return', 'USD_INR_Return']] = macro_df[['SP500_Return', 'Crude_Return', 'USD_INR_Return']].ffill().fillna(0.0)
+        
+        # Shift macro return columns by 1 trading day to resolve timezone lag (2A)
+        macro_df[['SP500_Return', 'Crude_Return', 'USD_INR_Return']] = macro_df[['SP500_Return', 'Crude_Return', 'USD_INR_Return']].shift(1).fillna(0.0)
         
         # Save cache
         macro_df.to_csv(cache_path, index=False)

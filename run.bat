@@ -1,0 +1,3 @@
+@echo off
+echo Starting StockChat AI Advisory Dashboard...
+streamlit run streamlit_app.py
