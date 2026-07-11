@@ -100,8 +100,8 @@ def run_training_pipeline():
     print("=========================================================================")
     
     # 1. Generate historical FII/DII data
-    # 5 years: Jan 2020 to June 2025 — covers COVID crash, bear market, and bull run
-    start_date = "2020-01-01"
+    # 10 years: Jan 2015 to June 2025 — covers pre-covid cycles, covid crash, and bull run
+    start_date = "2015-01-01"
     end_date   = "2025-06-01"
     fii_dii_csv = generate_historical_fii_dii_csv(start_date, end_date)
     fii_dii_df = pd.read_csv(fii_dii_csv)
@@ -130,7 +130,7 @@ def run_training_pipeline():
                 else:
                     print(f"\n[*] Retrying {ticker} (attempt {attempt}/{MAX_RETRIES})...")
 
-                # Download 5 years of daily data
+                # Download 10 years of daily data
                 stock_df = yf.download(ticker, start=start_date, end=end_date, progress=False)
 
                 # Clean column multi-index if present (yfinance sometimes outputs multi-index columns)
@@ -148,7 +148,7 @@ def run_training_pipeline():
                 import re as _re
                 safe_ticker = _re.sub(r'[^a-zA-Z0-9]', '_', ticker)
                 os.makedirs("data/raw", exist_ok=True)
-                stock_df.to_csv(f"data/raw/{safe_ticker}_5y.csv", index=False)
+                stock_df.to_csv(f"data/raw/{safe_ticker}_10y.csv", index=False)
 
                 # Compute technical indicators
                 price_indicators_df = calculate_technical_indicators(stock_df)

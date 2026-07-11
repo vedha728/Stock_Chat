@@ -10,5 +10,5 @@ python-dotenv>=1.0.0
 rich>=13.7.0
 google-genai
 streamlit
-transformers
-torch --index-url https://download.pytorch.org/whl/cpu
+# transformers
+# torch --index-url https://download.pytorch.org/whl/cpu

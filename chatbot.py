@@ -502,7 +502,7 @@ def display_prediction_report(ticker: str, company: str, price: float, result: d
         beginner_explanation += note_text
 
     console.print()
-    console.print(Panel(beginner_explanation, title="🧠 AI Explanation & Strategy Guide (For Beginners)", border_style="cyan"))
+    console.print(Panel(beginner_explanation, title="🧠 Simple Explanation Guide", border_style="cyan"))
 
 
 def display_comparison_report(stocks: list[dict], ai_summary: str):
@@ -706,7 +706,7 @@ def main_loop(verbose: bool = False):
                 )
                 
                 if is_question:
-                    with console.status("[bold green]Consulting Gemini on your question...[/bold green]") as status:
+                    with console.status("[bold green]Consulting Sources...[/bold green]") as status:
                         try:
                             explanation = explain_educational_concept(user_input)
                             # Print beautiful panel with custom title
@@ -741,13 +741,14 @@ def main_loop(verbose: bool = False):
                     with console.status(f"[bold green]Fetching news for {company_name}...[/bold green]") as status:
                         try:
                             headlines = fetch_news_headlines(ticker, company_name)
-                            headlines = deduplicate_headlines(headlines)
                             console.print(f"\n📰 [bold cyan]Latest News for {company_name} ({ticker})[/bold cyan]\n")
                             if not headlines:
                                 console.print("No recent news found.")
                             else:
                                 for i, h in enumerate(headlines[:10], 1):
-                                    console.print(f"  {i}. {h}")
+                                    console.print(f"  {i}. [bold white]{h['title']}[/bold white]")
+                                    console.print(f"     Source: [dim]{h['source']}[/dim] | [link={h['url']}][blue underline]Read Article 🔗[/blue underline][/link]")
+                                    console.print(f"     Summary: {h['description']}\n")
                             console.print()
                         except Exception as err:
                             console.print(f"[bold red]❌ News Fetch Error:[/bold red] {err}")
@@ -910,7 +911,8 @@ def main_loop(verbose: bool = False):
                         status.update("[bold green]Running sentiment analyzer on headlines...[/bold green]")
                         try:
                             if headlines:
-                                sent_score, pos_count, neg_count = analyze_news_sentiment(headlines)
+                                titles_list = [h["title"] for h in headlines]
+                                sent_score, pos_count, neg_count = analyze_news_sentiment(titles_list)
                                 sentiment_summary = (sent_score, pos_count, neg_count, 1)
                             else:
                                 sentiment_summary = (0.0, 0, 0, 0)
@@ -939,9 +941,10 @@ def main_loop(verbose: bool = False):
                             "Price_Pct_5d": float((price_indicators_df['Close'].iloc[-1] / price_indicators_df['Close'].iloc[-6] - 1) * 100) if len(price_indicators_df) >= 6 else 0.0
                         }
 
-                        # Step 9: Explain via Gemini
-                        status.update("[bold green]Translating findings via Gemini AI...[/bold green]")
+                        # Step 9: Explain via AI
+                        status.update("[bold green]Generating AI explanation...[/bold green]")
                         try:
+                            titles_list = [h["title"] for h in headlines]
                             model_analysis, beginner_explanation = generate_beginner_explanation(
                                 ticker,
                                 company_name,
@@ -949,13 +952,13 @@ def main_loop(verbose: bool = False):
                                 ml_result,
                                 tech_summary_dict,
                                 sent_score,
-                                headlines,
+                                titles_list,
                                 fii_dii_summary,
                                 fundamentals,
                                 user_input=user_input
                             )
                         except Exception as gemini_err:
-                            console.print(f"[dim yellow]⚠️  Gemini AI explanation unavailable ({gemini_err}). Showing raw analysis.[/dim yellow]")
+                            console.print(f"[dim yellow]⚠️  AI explanation unavailable ({gemini_err}). Showing raw analysis.[/dim yellow]")
                             model_analysis = (
                                 "Factors Favouring Buy (+):\n"
                                 "  • [RSI] Momentum is neutral.\n\n"
@@ -970,7 +973,7 @@ def main_loop(verbose: bool = False):
                                 f"Current price: ₹{current_price:,.2f}\n"
                                 f"ML Signal: {ml_result.get('Recommendation', 'N/A')} "
                                 f"({ml_result.get('Confidence', 0)*100:.1f}% confidence)\n"
-                                f"[AI explanation unavailable — Gemini API may be down or key missing]"
+                                f"[AI explanation unavailable — API may be down or key missing]"
                             )
 
                         # Step 10: Output beautifully formatted dashboard
@@ -1019,7 +1022,8 @@ def main_loop(verbose: bool = False):
                             fii_dii_summary = analyze_institutional_signals(fii_net_list, dii_net_list)
                             
                             fundamentals = fetch_fundamentals(ticker)
-                            sent_score, pos_count, neg_count = analyze_news_sentiment(headlines)
+                            titles_list = [h["title"] for h in headlines]
+                            sent_score, pos_count, neg_count = analyze_news_sentiment(titles_list)
                             sent_avail = 1 if headlines else 0
                             sentiment_summary = (sent_score, pos_count, neg_count, sent_avail)
                             

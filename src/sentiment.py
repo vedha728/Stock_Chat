@@ -1,6 +1,8 @@
 import os
 import time
 import requests
+import json
+import re
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -134,9 +136,10 @@ def deduplicate_headlines(headlines: list[str]) -> list[str]:
 # ─────────────────────────────────────────────────────────────
 def analyze_news_sentiment(headlines: list[str]) -> tuple[float, int, int]:
     """
-    Analyzes financial news headlines using a 2-tier strategy:
-      Tier 1 — Local FinBERT (transformers, runs on CPU, no internet needed)
-      Tier 2 — Dictionary-based fallback (instant, no dependencies)
+    Analyzes financial news headlines using a 3-tier strategy:
+      Tier 1 — AI Sentiment (via Gemini API, serverless, high accuracy)
+      Tier 2 — Local FinBERT (transformers/PyTorch, offline fallback)
+      Tier 3 — Dictionary-based fallback (instant, dependency-free backup)
 
     Returns: (composite_score [-1.0 to 1.0], positive_count, negative_count)
     """
@@ -149,7 +152,55 @@ def analyze_news_sentiment(headlines: list[str]) -> tuple[float, int, int]:
     if len(headlines) < orig_count:
         print(f"[*] De-duplicated headlines: kept {len(headlines)} of {orig_count} total headlines.")
 
-    # ── Tier 1: Try local FinBERT ────────────────────────────
+    # ── Tier 1: Try AI Sentiment (Gemini API) ────────────────
+    raw_key = os.getenv("GEMINI_API_KEY", "")
+    if raw_key and "PLACEHOLDER" not in raw_key:
+        try:
+            print("[*] Running Tier 1: AI-based sentiment analysis...")
+            import google.genai as genai
+            
+            # Simple key helper matching gemini_explain.py rotation
+            keys = [k.strip() for k in raw_key.split(",") if k.strip()]
+            
+            # Formulate the prompt
+            prompt = (
+                "Analyze the sentiment of these stock news headlines. For each headline, classify it as positive, negative, or neutral. "
+                "Calculate the average composite score (between -1.0 for very negative and 1.0 for very positive). "
+                "Count the number of positive headlines and the number of negative headlines.\n\n"
+                "Headlines to analyze:\n"
+                + "\n".join(f"- {h}" for h in headlines) + "\n\n"
+                "You MUST return ONLY a JSON object in this exact format (no other text, no markdown wrappers):\n"
+                '{"composite": 0.25, "positive": 2, "negative": 1}'
+            )
+            
+            for attempt in range(len(keys)):
+                try:
+                    current_key = keys[attempt]
+                    client = genai.Client(api_key=current_key)
+                    response = client.models.generate_content(
+                        model="gemini-2.5-flash",
+                        contents=prompt
+                    )
+                    res_text = response.text.strip()
+                    if res_text.startswith("```"):
+                        res_text = re.sub(r'^```(?:json)?\n', '', res_text)
+                        res_text = re.sub(r'\n```$', '', res_text).strip()
+                    
+                    data = json.loads(res_text)
+                    composite = float(data.get("composite", 0.0))
+                    pos_count = int(data.get("positive", 0))
+                    neg_count = int(data.get("negative", 0))
+                    
+                    composite = float(max(-1.0, min(1.0, composite)))
+                    print(f"[+] AI Sentiment: score={composite:.2f} | pos={pos_count} | neg={neg_count}")
+                    return composite, pos_count, neg_count
+                except Exception as api_err:
+                    print(f"[Warning] AI Sentiment attempt {attempt+1} failed: {api_err}")
+        except Exception as e:
+            print(f"[Warning] Tier 1 AI Sentiment failed to initialize: {e}")
+
+    # ── Tier 2: Try local FinBERT ────────────────────────────
+    print("[*] Running Tier 2: Local FinBERT fallback...")
     pipe = _load_finbert()
 
     if pipe is not None:
@@ -183,8 +234,8 @@ def analyze_news_sentiment(headlines: list[str]) -> tuple[float, int, int]:
         except Exception as e:
             print(f"[Warning] Local FinBERT inference error: {e}")
 
-    # ── Tier 2: Dictionary fallback ──────────────────────────
-    print("[*] Using dictionary-based sentiment fallback.")
+    # ── Tier 3: Dictionary fallback ──────────────────────────
+    print("[*] Running Tier 3: Dictionary-based sentiment fallback.")
     return fallback_sentiment_analysis(headlines)
 
 

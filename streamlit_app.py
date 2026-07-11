@@ -68,10 +68,28 @@ st.set_page_config(
 # Premium Dark CSS styling injection
 st.markdown("""
 <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    
     /* Custom main background and fonts */
+    html, body, [class*="css"], .stApp {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+    }
+    
     .stApp {
         background-color: #0E1117;
         color: #E0E2E7;
+    }
+    
+    /* Make headers look sharp */
+    h1, h2, h3 {
+        font-weight: 600 !important;
+    }
+    
+    /* Make paragraphs and bullet lists highly readable */
+    .stMarkdown p, .stMarkdown li {
+        font-size: 15px !important;
+        line-height: 1.6 !important;
+        color: #E2E8F0 !important;
     }
     
     /* Title bar styling */
@@ -155,11 +173,6 @@ st.sidebar.image("https://img.icons8.com/nolan/96/combo-chart.png", width=60)
 st.sidebar.title("StockChat AI")
 st.sidebar.caption("Multi-Signal Indian Stock Advisor")
 
-# Let users supply Gemini API key to override environment if needed
-user_gemini_key = st.sidebar.text_input("Gemini API Key (Optional)", type="password", help="If left blank, the app will use the server's default GEMINI_API_KEY secret.")
-if user_gemini_key:
-    os.environ["GEMINI_API_KEY"] = user_gemini_key
-
 # Main Mode Selector in Sidebar
 app_mode = st.sidebar.radio(
     "Choose Mode",
@@ -178,7 +191,7 @@ TCS, Reliance, Wipro, Infosys, SBI, HDFC Bank, Adani Ports, Tata Steel, Tata Pow
 st.markdown("""
 <div class="title-banner">
     <h1 style="margin: 0; color: #38BDF8;">📊 Multi-Signal AI Stock Advisory</h1>
-    <p style="margin: 5px 0 0 0; color: #94A3B8; font-size: 15px;">Leverages Technical Charts, News Sentiment, Institutional Flows, and Fundamental Ratios via XGBoost & Gemini</p>
+    <p style="margin: 5px 0 0 0; color: #94A3B8; font-size: 15px;">Leverages Technical Charts, News Sentiment, Institutional Flows, and Fundamental Ratios via XGBoost & AI</p>
 </div>
 """, unsafe_allow_html=True)
 
@@ -257,13 +270,13 @@ if app_mode == "🔍 Stock Analysis & Chat":
                 with st.spinner(f"Retrieving news for {selected_company}..."):
                     try:
                         headlines = fetch_news_headlines(selected_ticker, selected_company)
-                        headlines = deduplicate_headlines(headlines)
                         st.subheader(f"📰 Latest News: {selected_company}")
                         if not headlines:
                             st.info("No recent news headlines found.")
                         else:
                             for idx, h in enumerate(headlines[:10], 1):
-                                st.markdown(f"**{idx}.** {h}")
+                                st.markdown(f"**{idx}. [{h['title']}]({h['url']})** — *{h['source']}*")
+                                st.caption(f"_{h['description']}_")
                     except Exception as e:
                         st.error(f"Failed to fetch news: {e}")
             
@@ -323,26 +336,24 @@ if app_mode == "🔍 Stock Analysis & Chat":
             
             # FULL STANDARD REPORT
             else:
-                # ── Step 1: Fetch Price & Technicals (Critical) ──
-                with st.spinner("Downloading price data & calculating chart indicators..."):
+                with st.spinner("Analyzing charts, news sentiment, institutional flows & fundamentals..."):
+                    # ── Step 1: Fetch Price & Technicals (Critical) ──
                     try:
                         price_df = fetch_stock_price(selected_ticker)
                         price_indicators_df = calculate_technical_indicators(price_df)
                         latest_price_row = price_indicators_df.iloc[-1]
                         current_price = float(latest_price_row['Close'])
-                        
-                        # Calculate 5-day return for the strategy note checks
                         price_5d_pct = float((price_indicators_df['Close'].iloc[-1] / price_indicators_df['Close'].iloc[-6] - 1) * 100) if len(price_indicators_df) >= 6 else 0.0
                     except Exception as e:
                         st.error(f"Error fetching stock data: {e}")
                         st.stop()
-                
-                # ── Step 2: Fetch News Sentiment (Non-critical) ──
-                with st.spinner("Analyzing media headlines..."):
+                    
+                    # ── Step 2: Fetch News Sentiment (Non-critical) ──
                     try:
                         headlines = fetch_news_headlines(selected_ticker, selected_company)
                         if headlines:
-                            sent_score, pos_count, neg_count = analyze_news_sentiment(headlines)
+                            titles_list = [h["title"] for h in headlines]
+                            sent_score, pos_count, neg_count = analyze_news_sentiment(titles_list)
                             sentiment_summary = (sent_score, pos_count, neg_count, 1)
                         else:
                             sentiment_summary = (0.0, 0, 0, 0)
@@ -352,9 +363,8 @@ if app_mode == "🔍 Stock Analysis & Chat":
                         sentiment_summary = (0.0, 0, 0, 0)
                         sent_score, pos_count, neg_count = 0.0, 0, 0
                         headlines = []
-                
-                # ── Step 3: Fetch Institutional Flow (Non-critical) ──
-                with st.spinner("Analyzing FII/DII cash flows..."):
+                    
+                    # ── Step 3: Fetch Institutional Flow (Non-critical) ──
                     try:
                         fii_dii_df = fetch_latest_fii_dii()
                         fii_net_list = fii_dii_df['FII_Net'].tolist()
@@ -366,35 +376,30 @@ if app_mode == "🔍 Stock Analysis & Chat":
                             "FII_10d_Net": 0.0, "DII_10d_Net": 0.0,
                             "FII_Trend": 0, "DII_Trend": 0, "Divergence_Flag": 0
                         }
-                
-                # ── Step 4: Fetch Fundamentals (Non-critical) ──
-                with st.spinner("Extracting valuation multipliers..."):
+                    
+                    # ── Step 4: Fetch Fundamentals (Non-critical) ──
                     try:
                         fundamentals = fetch_fundamentals(selected_ticker)
                     except Exception as e:
                         st.warning(f"Could not load fundamentals: {e}")
                         fundamentals = {}
-                
-                # ── Step 5: Fetch Macro Returns (Non-critical) ──
-                with st.spinner("Aligning global macro variables..."):
+                    
+                    # ── Step 5: Fetch Macro Returns (Non-critical) ──
                     try:
                         macro_returns = get_latest_macro_returns()
                     except Exception as e:
                         st.warning(f"Global macro returns unavailable: {e}")
                         macro_returns = (0.0, 0.0, 0.0)
-                
-                # ── Step 6: ML Prediction ──
-                with st.spinner("Running ML classifier model..."):
+                    
+                    # ── Step 6: ML Prediction ──
                     try:
                         feature_row = prepare_inference_row(price_indicators_df, fii_dii_summary, sentiment_summary, macro_returns)
                         ml_result = predict_stock_action(feature_row)
                     except Exception as e:
                         st.error(f"XGBoost model inference failed: {e}")
                         st.stop()
-                
-                # ── Step 7: Explain via Gemini ──
-                with st.spinner("Generating beginner-friendly AI explanations..."):
-                    # Build unified technical summary dictionary containing Price_Pct_5d
+                    
+                    # ── Step 7: Explain via AI ──
                     tech_summary_dict = {
                         **latest_price_row.to_dict(),
                         "Price_Pct_5d": price_5d_pct
@@ -407,7 +412,7 @@ if app_mode == "🔍 Stock Analysis & Chat":
                             ml_result,
                             tech_summary_dict,
                             sent_score,
-                            headlines,
+                            [h["title"] for h in headlines],
                             fii_dii_summary,
                             fundamentals,
                             user_input=chat_input
@@ -534,17 +539,21 @@ if app_mode == "🔍 Stock Analysis & Chat":
                     if note not in beginner_explanation:
                         beginner_explanation += note
                 
-                st.write("### 🧠 AI Explanation & Strategy Guide (For Beginners)")
-                st.markdown(beginner_explanation)
-                
                 st.write("### 🤖 Model Analysis & Strategy")
-                st.markdown(model_analysis)
+                st.markdown(model_analysis.replace("•", "*"))
+                
+                st.markdown('<hr style="border: 0; border-top: 1px solid rgba(255, 255, 255, 0.15); margin: 25px 0;">', unsafe_allow_html=True)
+                
+                st.write("### 🧠 Simple Explanation Guide")
+                st.markdown(beginner_explanation.replace("•", "*"))
                 
                 # Display individual news articles
                 if headlines:
-                    st.write("### 📰 Recent News Articles & Headlines")
-                    for i, h in enumerate(headlines[:5], 1):
-                        st.markdown(f"* {h}")
+                    st.write("") # small spacing
+                    with st.expander("📰 View Recent News Articles & Headlines", expanded=False):
+                        for i, h in enumerate(headlines[:6], 1):
+                            st.markdown(f"**{i}. [{h['title']}]({h['url']})** — *{h['source']}*")
+                            st.caption(f"_{h['description']}_")
 
 # ─────────────────────────────────────────────────────────────
 # MODE 2: SIDE-BY-SIDE COMPARISON
@@ -576,7 +585,8 @@ elif app_mode == "📊 Side-by-Side Comparison":
                         current_price = float(latest_row['Close'])
                         
                         headlines = fetch_news_headlines(ticker, company_name)
-                        sent_score, pos, neg = analyze_news_sentiment(headlines)
+                        titles_list = [h["title"] for h in headlines]
+                        sent_score, pos, neg = analyze_news_sentiment(titles_list)
                         sent_avail = 1 if headlines else 0
                         sentiment_summary = (sent_score, pos, neg, sent_avail)
                         
@@ -629,7 +639,7 @@ elif app_mode == "📊 Side-by-Side Comparison":
                     st.dataframe(comp_df, use_container_width=True)
                     
                     st.write("### 🧠 AI Side-by-Side Comparison Summary")
-                    st.markdown(ai_summary)
+                    st.markdown(ai_summary.replace("•", "*"))
                     
                 except Exception as err:
                     st.error(f"Comparison Error: {err}")
@@ -714,7 +724,7 @@ elif app_mode == "📚 Learn Basics":
     )
     
     if learn_query:
-        with st.spinner("Consulting Gemini AI educational model..."):
+        with st.spinner("Consulting Sources..."):
             try:
                 explanation = explain_educational_concept(learn_query)
                 st.markdown("### 🧠 AI Financial Guide (For Beginners)")

@@ -224,7 +224,7 @@ except Exception as e:
 # ─────────────────────────────────────────────
 # 10. Educational Concept Explainer
 # ─────────────────────────────────────────────
-print("\n[10] EDUCATIONAL CONCEPT EXPLAINER TEST (Gemini)")
+print("\n[10] EDUCATIONAL CONCEPT EXPLAINER TEST (AI)")
 try:
     from gemini_explain import explain_educational_concept
     # Test a simple query
@@ -242,7 +242,7 @@ except Exception as e:
 # ─────────────────────────────────────────────
 # 11. Side-by-Side Stock Comparison
 # ─────────────────────────────────────────────
-print("\n[11] SIDE-BY-SIDE STOCK COMPARISON TEST (Gemini)")
+print("\n[11] SIDE-BY-SIDE STOCK COMPARISON TEST (AI)")
 try:
     from data_collector import extract_multiple_tickers
     from gemini_explain import generate_comparison_explanation

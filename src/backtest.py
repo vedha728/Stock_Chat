@@ -238,7 +238,7 @@ def run_backtest(ticker: str) -> dict:
 
 if __name__ == "__main__":
     try:
-        report = run_backtest("TATAMOTORS.NS")
+        report = run_backtest("TCS.NS")
         print("\nBacktest Summary Report:")
         for k, v in report.items():
             if isinstance(v, float):
