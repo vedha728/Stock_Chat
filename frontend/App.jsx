@@ -530,34 +530,17 @@ export default function App() {
                 </div>
 
                 {/* AI Summary report */}
-                <div className="glass-card" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                  <div>
-                    <h3 style={{ fontSize: '16px', fontWeight: 600, color: '#FFFFFF', marginBottom: '12px' }}>
-                      🧠 AI Side-by-Side Comparison Summary
-                    </h3>
-                    <div style={{ 
-                      fontSize: '14px', 
-                      color: '#E2E8F0', 
-                      lineHeight: '1.6', 
-                      whiteSpace: 'pre-line' 
-                    }}>
-                      {compareData.ai_summary}
-                    </div>
-                  </div>
-                  
-                  {/* Follow-up button */}
-                  <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '16px', display: 'flex', justifyContent: 'flex-start' }}>
-                    <button
-                      onClick={() => {
-                        const tickerNames = compareData.stocks.map(s => s.ticker.split('.')[0]).join(' and ');
-                        setQuery(`Based on the comparison of ${tickerNames}, what are the key risks?`);
-                        setActiveMode("analysis");
-                      }}
-                      className="btn-pill"
-                      style={{ width: 'auto', padding: '10px 20px', backgroundColor: 'var(--primary-emerald)', borderColor: 'var(--primary-emerald)' }}
-                    >
-                      💬 Ask a Follow-up Question in Chat
-                    </button>
+                <div className="glass-card">
+                  <h3 style={{ fontSize: '16px', fontWeight: 600, color: '#FFFFFF', marginBottom: '12px' }}>
+                    🧠 AI Side-by-Side Comparison Summary
+                  </h3>
+                  <div style={{ 
+                    fontSize: '14px', 
+                    color: '#E2E8F0', 
+                    lineHeight: '1.6', 
+                    whiteSpace: 'pre-line' 
+                  }}>
+                    {compareData.ai_summary}
                   </div>
                 </div>
               </div>
