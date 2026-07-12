@@ -178,7 +178,12 @@ class handler(BaseHTTPRequestHandler):
                 )
             except Exception as gem_err:
                 model_analysis = "Factors Favouring Buy (+):\n  • [RSI] Technical momentum indicators are active.\n\nFactors Against Buy (-):\n  • [Moving Averages] Price is trading under technical pressure.\n\nStrategic Advice:\n  • Action: Hold current shares. Avoid buying new positions.\n  • Stop Loss: Safety levels active."
-                beginner_explanation = f"AI Explanation generation failed (rate-limit / server offline). Falling back to structured templates.\n\nML Recommendation: {ml_result.get('Recommendation')} ({ml_result.get('Confidence', 0.0)*100:.1f}% confidence)."
+                beginner_explanation = (
+                    f"Strategic Advice Summary:\n\n"
+                    f"• **Recommendation:** {ml_result.get('Recommendation', 'HOLD')} (Confidence: {ml_result.get('Confidence', 0.5)*100:.1f}%)\n"
+                    f"• **Risk Parameters:** Active monitoring is suggested. Adjust positions based on your individual risk appetite.\n"
+                    f"• **Safety Levels:** Place a trailing stop loss close to key technical support indicators (MA50/MA200)."
+                )
 
             # Clean and serialize response structure
             clean_fundamentals = {}

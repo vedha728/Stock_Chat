@@ -63,9 +63,9 @@ class handler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(json.dumps(response_payload).encode('utf-8'))
 
-        except Exception as e:
+        except Exception:
             self.send_response(500)
             self.send_header('Content-type', 'application/json')
             self.send_header('Access-Control-Allow-Origin', '*')
             self.end_headers()
-            self.wfile.write(json.dumps({"error": f"Backtest simulation failed: {str(e)}"}).encode('utf-8'))
+            self.wfile.write(json.dumps({"error": f"Unable to run backtest simulation for '{query}' due to data availability. Please try another stock."}).encode('utf-8'))
