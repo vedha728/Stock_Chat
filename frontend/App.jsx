@@ -15,6 +15,13 @@ const LOADING_STEPS = [
   "Generating AI strategic explanation..."
 ];
 
+const NEWS_LOADING_STEPS = [
+  "Connecting to live news RSS feeds...",
+  "Fetching latest headlines & market news...",
+  "Running sentiment analysis on headlines...",
+  "Aggregating sources for display..."
+];
+
 const COMPARE_LOADING_STEPS = [
   "Resolving stock symbols for comparison...",
   "Fetching technical charts & indicators for all target stocks...",
@@ -38,6 +45,12 @@ export default function App() {
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  const qLower = query.toLowerCase();
+  const hasNewsIntent = qLower.includes("news") || qLower.includes("headline") || qLower.includes("headlines") || qLower.includes("article") || qLower.includes("articles");
+  const hasFundamentalsIntent = ["valuation", "debt", "pe", "pb", "roe", "mcap", "fundamental", "fundamentals", "market cap", "leverage", "profits"].some(w => qLower.includes(w));
+  const hasPriceIntent = ["price", "chart", "trend", "technical", "technicals", "rsi", "macd", "moving average", "buy", "sell", "hold", "should i", "verdict", "recommendation"].some(w => qLower.includes(w));
+  const isNewsOnly = hasNewsIntent && !hasFundamentalsIntent && !hasPriceIntent;
   
   // Loader states
   const [loadingStep, setLoadingStep] = useState(0);
@@ -46,14 +59,15 @@ export default function App() {
     let interval;
     if (loading) {
       setLoadingStep(0);
+      const stepsCount = isNewsOnly ? NEWS_LOADING_STEPS.length : LOADING_STEPS.length;
       interval = setInterval(() => {
-        setLoadingStep((prev) => (prev + 1) % LOADING_STEPS.length);
+        setLoadingStep((prev) => (prev + 1) % stepsCount);
       }, 2000);
     } else {
       setLoadingStep(0);
     }
     return () => clearInterval(interval);
-  }, [loading]);
+  }, [loading, isNewsOnly]);
   
   // Data states
   const [analysisData, setAnalysisData] = useState(null);
@@ -73,11 +87,6 @@ export default function App() {
   // UI states
   const [newsExpanded, setNewsExpanded] = useState(false);
 
-  const qLower = query.toLowerCase();
-  const hasNewsIntent = qLower.includes("news") || qLower.includes("headline") || qLower.includes("headlines") || qLower.includes("article") || qLower.includes("articles");
-  const hasFundamentalsIntent = ["valuation", "debt", "pe", "pb", "roe", "mcap", "fundamental", "fundamentals", "market cap", "leverage", "profits"].some(w => qLower.includes(w));
-  const hasPriceIntent = ["price", "chart", "trend", "technical", "technicals", "rsi", "macd", "moving average", "buy", "sell", "hold", "should i", "verdict", "recommendation"].some(w => qLower.includes(w));
-  const isNewsOnly = hasNewsIntent && !hasFundamentalsIntent && !hasPriceIntent;
 
   const fetchAnalysis = async (searchQuery) => {
     if (!searchQuery.trim()) return;
@@ -239,10 +248,10 @@ export default function App() {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '16px', alignItems: 'flex-start', textAlign: 'left' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#E2E8F0', fontSize: '13px', fontWeight: 500 }}>
                       <div className="spinner-mini"></div>
-                      <span>{LOADING_STEPS[loadingStep]}</span>
+                      <span>{isNewsOnly ? NEWS_LOADING_STEPS[loadingStep % NEWS_LOADING_STEPS.length] : LOADING_STEPS[loadingStep % LOADING_STEPS.length]}</span>
                     </div>
                     <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontStyle: 'italic', paddingLeft: '28px' }}>
-                      Please wait a few seconds while we synthesize real-time market data...
+                      {isNewsOnly ? "Please wait a few seconds while we fetch the latest news headlines..." : "Please wait a few seconds while we synthesize real-time market data..."}
                     </span>
                   </div>
                 )}
