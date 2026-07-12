@@ -62,6 +62,15 @@ body {
   animation: spin 0.8s linear infinite;
 }
 
+.spinner-mini {
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border-left-color: var(--primary-mint);
+  animation: spin 0.8s linear infinite;
+}
+
 @keyframes spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }

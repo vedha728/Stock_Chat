@@ -131,12 +131,7 @@ export default function App() {
       <div style={{ flex: 1, padding: '30px 40px', overflowY: 'auto' }}>
         <Header />
 
-        {/* Global Loading Spinner */}
-        {loading && (
-          <div style={{ display: 'flex', justifyContent: 'center', margin: '40px 0' }}>
-            <div className="spinner"></div>
-          </div>
-        )}
+
 
         {/* Global Error Banner */}
         {error && (
@@ -190,6 +185,14 @@ export default function App() {
                     News about Wipro
                   </button>
                 </div>
+                
+                {/* Inline loading progress */}
+                {loading && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '16px', color: '#E2E8F0', fontSize: '13px', fontWeight: 500, justifyContent: 'flex-start', textAlign: 'left' }}>
+                    <div className="spinner-mini"></div>
+                    <span>Analyzing charts, news sentiment, institutional flows & fundamentals...</span>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -257,31 +260,26 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* Technicals & Chart Row */}
+                {/* Row 1: Signals Summary & Chart */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: '24px', alignItems: 'start' }}>
-                  
-                  {/* Left Column: Signals, Technicals, Fundamentals */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                    <SignalsSummary 
-                      technicals={analysisData.technical_indicators}
-                      sentiment={analysisData.sentiment}
-                      institutional={analysisData.institutional_flow}
-                    />
-                    
-                    <TechnicalDetails 
-                      technicals={analysisData.technical_indicators}
-                      currentPrice={analysisData.current_price}
-                    />
-
-                    <Fundamentals data={analysisData.fundamentals} />
-                  </div>
-
-                  {/* Right Column: Chart */}
+                  <SignalsSummary 
+                    technicals={analysisData.technical_indicators}
+                    sentiment={analysisData.sentiment}
+                    institutional={analysisData.institutional_flow}
+                  />
                   <ChartView 
                     data={analysisData.historical_prices}
                     companyName={analysisData.company_name}
                   />
+                </div>
 
+                {/* Row 2: Technical Details & Fundamentals Side-by-Side */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', alignItems: 'start' }}>
+                  <TechnicalDetails 
+                    technicals={analysisData.technical_indicators}
+                    currentPrice={analysisData.current_price}
+                  />
+                  <Fundamentals data={analysisData.fundamentals} />
                 </div>
 
                 {/* Explanation (Full width) */}
