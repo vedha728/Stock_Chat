@@ -4,9 +4,11 @@ import datetime
 import requests
 import pandas as pd
 import numpy as np
-from dotenv import load_dotenv
-
-load_dotenv()
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
 
 def fetch_latest_fii_dii() -> pd.DataFrame:
     """

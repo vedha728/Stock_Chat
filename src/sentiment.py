@@ -3,9 +3,11 @@ import time
 import requests
 import json
 import re
-from dotenv import load_dotenv
-
-load_dotenv()
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
 
 # ─────────────────────────────────────────────────────────────
 # Local FinBERT model (lazy-loaded on first call, cached after)

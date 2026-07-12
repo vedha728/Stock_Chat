@@ -4,9 +4,11 @@ import pandas as pd
 import datetime
 import xml.etree.ElementTree as ET
 from urllib.parse import quote_plus
-from dotenv import load_dotenv
-
-load_dotenv()
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
 
 # Dictionary of Nifty 50 + important Indian stocks for instant mapping
 # Multiple aliases per stock so users can type anything and get matched
