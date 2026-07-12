@@ -1,7 +1,7 @@
 {
   "functions": {
-    "api/**/*.py": {
-      "excludeFiles": "{node_modules,dist,frontend,data/processed,data/raw,.vercel/python/.venv/lib/python*/site-packages/nvidia*}/**"
+    "api/*.py": {
+      "excludeFiles": "frontend/**"
     }
   },
   "rewrites": [
