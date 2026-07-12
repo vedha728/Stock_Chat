@@ -15,3 +15,9 @@ fii_dii_mrchartist_history_full.json
 
 # Temporary/debug baselines and metadata
 models/*.json
+
+# Node & Frontend Build files
+node_modules/
+dist/
+.env.local
+npm-debug.log*
