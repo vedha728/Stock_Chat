@@ -625,8 +625,9 @@ def fetch_stock_price(ticker: str) -> pd.DataFrame:
     df = df.reset_index()
     
     # Save raw CSV
-    os.makedirs("data/raw", exist_ok=True)
-    raw_path = f"data/raw/{ticker.replace('.', '_')}.csv"
+    base_dir = "/tmp/data/raw" if os.environ.get("VERCEL") == "1" else "data/raw"
+    os.makedirs(base_dir, exist_ok=True)
+    raw_path = os.path.join(base_dir, f"{ticker.replace('.', '_')}.csv")
     df.to_csv(raw_path, index=False)
     print(f"[+] Saved raw price data to {raw_path}")
     
@@ -955,7 +956,7 @@ def get_latest_macro_returns() -> tuple[float, float, float]:
     import pandas as pd
     import datetime
     
-    cache_dir = "data/macro"
+    cache_dir = "/tmp/data/macro" if os.environ.get("VERCEL") == "1" else "data/macro"
     cache_path = os.path.join(cache_dir, "global_macro_cache.csv")
     today = datetime.date.today()
     

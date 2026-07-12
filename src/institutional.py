@@ -20,8 +20,9 @@ def fetch_latest_fii_dii() -> pd.DataFrame:
     Returns: pd.DataFrame with columns ['Date', 'FII_Net', 'DII_Net']
     """
     # print("[*] Fetching latest FII/DII data...")
-    cache_path = "data/fii_dii/live_fii_dii_cache.csv"
-    os.makedirs("data/fii_dii", exist_ok=True)
+    cache_dir = "/tmp/data/fii_dii" if os.environ.get("VERCEL") == "1" else "data/fii_dii"
+    cache_path = os.path.join(cache_dir, "live_fii_dii_cache.csv")
+    os.makedirs(cache_dir, exist_ok=True)
 
     # 1. Try today's real FII/DII from NSE India API
     today_record = _fetch_nse_today()
