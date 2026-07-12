@@ -62,6 +62,26 @@ class handler(BaseHTTPRequestHandler):
             return
 
         try:
+            # Intercept general Tata Motors demerger query
+            q_lower = query.lower()
+            is_general_tata = ("tata motor" in q_lower or "tatamotors" in q_lower) and not any(w in q_lower for w in ["pv", "passenger", "cv", "commercial", "tmpv", "tmcv"])
+            
+            if is_general_tata:
+                self.send_response(200)
+                self.send_header('Content-type', 'application/json')
+                self.send_header('Access-Control-Allow-Origin', '*')
+                self.end_headers()
+                payload = {
+                    "is_demerger": True,
+                    "message": "Tata Motors has demerged into two separate listed entities:",
+                    "options": [
+                        {"label": "1. TMPV (Tata Motors Passenger Vehicles Limited - Cars, EVs, JLR)", "query": "TMPV"},
+                        {"label": "2. TMCV (Tata Motors Commercial Vehicles Limited - Trucks, Buses)", "query": "TMCV"}
+                    ]
+                }
+                self.wfile.write(json.dumps(payload).encode('utf-8'))
+                return
+
             # 1. Resolve Ticker using fuzzy matching
             selected_ticker, selected_company = extract_ticker(query)
             if not selected_ticker or selected_ticker not in TICKER_NAME_MAP:

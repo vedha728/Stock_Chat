@@ -243,19 +243,74 @@ export default function App() {
               </div>
             </div>
 
+            {/* Demerger Choice Card */}
+            {analysisData && analysisData.is_demerger && !loading && (
+              <div className="glass-card" style={{ 
+                borderLeft: '4px solid var(--warning-amber)',
+                maxWidth: '650px',
+                margin: '30px auto 0 auto',
+                width: '100%',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '16px'
+              }}>
+                <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#FFFFFF', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  💡 {analysisData.message}
+                </h3>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '13px', margin: 0, textAlign: 'left' }}>
+                  Please choose which of the split entities you want to analyze:
+                </p>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                  {analysisData.options.map((opt, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => {
+                        setQuery(opt.query);
+                        fetchAnalysis(opt.query);
+                      }}
+                      className="btn-pill"
+                      style={{ 
+                        textAlign: 'center', 
+                        padding: '12px 16px', 
+                        backgroundColor: '#1E293B',
+                        borderColor: '#242E42'
+                      }}
+                    >
+                      {opt.query} (Choose option {idx + 1})
+                    </button>
+                  ))}
+                </div>
+                <div style={{ fontSize: '11px', color: 'var(--text-secondary)', fontStyle: 'italic', textAlign: 'left' }}>
+                  * Tata Motors split its passenger (TMPV) and commercial (TMCV) vehicle divisions.
+                </div>
+              </div>
+            )}
+
             {/* Analysis Dashboard Grid */}
-            {analysisData && !loading && (
+            {analysisData && !analysisData.is_demerger && !loading && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                <div style={{
-                  padding: '16px 20px',
-                  backgroundColor: 'rgba(16, 185, 129, 0.08)',
-                  border: '1px solid rgba(16, 185, 129, 0.2)',
-                  borderRadius: '8px',
-                  color: '#A7F3D0',
-                  fontSize: '15px',
-                  fontWeight: 600
+                <div className="glass-card" style={{ 
+                  display: 'flex', 
+                  justifyContent: 'space-between', 
+                  alignItems: 'center', 
+                  padding: '20px 24px', 
+                  background: 'linear-gradient(135deg, #1E293B 0%, #0F172A 100%)',
+                  border: '1px solid #242E42',
+                  borderLeft: '4px solid var(--primary-emerald)',
+                  borderRadius: '12px'
                 }}>
-                  📌 Target Stock: {analysisData.company_name} ({analysisData.ticker}) | Price: ₹{analysisData.current_price.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', textAlign: 'left' }}>
+                    <span style={{ fontSize: '11px', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 600 }}>Target Stock</span>
+                    <h2 style={{ fontSize: '20px', fontWeight: 700, color: '#FFFFFF', margin: 0 }}>
+                      {analysisData.company_name} <span style={{ color: '#94A3B8', fontSize: '14px', fontWeight: 500 }}>({analysisData.ticker})</span>
+                    </h2>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <span style={{ fontSize: '11px', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 600, display: 'block', marginBottom: '4px' }}>Current Price</span>
+                    <span style={{ fontSize: '24px', fontWeight: 800, color: '#38BDF8' }}>
+                      ₹{analysisData.current_price.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                    </span>
+                  </div>
                 </div>
 
                 {/* Verdict Card */}
@@ -263,17 +318,28 @@ export default function App() {
                   borderLeft: '4px solid', 
                   borderColor: analysisData.ml_result.Recommendation === 'BUY' ? 'var(--primary-emerald)' : analysisData.ml_result.Recommendation === 'SELL' ? 'var(--danger-red)' : 'var(--warning-amber)'
                 }}>
-                  <h2 style={{ fontSize: '20px', fontWeight: 700, marginBottom: '8px' }}>
+                  <h2 style={{ fontSize: '20px', fontWeight: 700, marginBottom: '8px', textAlign: 'left' }}>
                     Verdict: {analysisData.ml_result.Recommendation} ({(analysisData.ml_result.Confidence * 100).toFixed(1)}% Confidence)
                   </h2>
-                  <p style={{ color: 'var(--text-secondary)', fontSize: '14px', lineHeight: '1.5' }}>
-                    {analysisData.ml_result.Recommendation === 'BUY' 
-                      ? "Strong bullish factors align across technicals, FII/DII purchases, and sentiment triggers. Buying is recommended."
-                      : analysisData.ml_result.Recommendation === 'SELL' 
-                      ? "Bearish momentum indicators and FII capital outflows suggest immediate downswings. Selling or avoiding new positions is advised."
-                      : `Signal chance (${(analysisData.ml_result.Confidence * 100).toFixed(1)}%) is within neutral parameters. Defaulting to HOLD.`
-                    }
-                  </p>
+                  {(() => {
+                    const buyPct = analysisData.ml_result.Breakdown.BUY;
+                    const holdPct = analysisData.ml_result.Breakdown.HOLD;
+                    const sellPct = analysisData.ml_result.Breakdown.SELL;
+                    const isBuyHighestButHold = analysisData.ml_result.Recommendation === 'HOLD' && buyPct > holdPct && buyPct > sellPct;
+
+                    return (
+                      <p style={{ color: 'var(--text-secondary)', fontSize: '14px', lineHeight: '1.5', margin: 0, textAlign: 'left' }}>
+                        {analysisData.ml_result.Recommendation === 'BUY' 
+                          ? "Strong bullish factors align across technicals, FII/DII purchases, and sentiment triggers. Buying is recommended."
+                          : analysisData.ml_result.Recommendation === 'SELL' 
+                          ? "Bearish momentum indicators and FII capital outflows suggest immediate downswings. Selling or avoiding new positions is advised."
+                          : isBuyHighestButHold
+                          ? `⚠️ Note: Although BUY has the highest probability (${(buyPct * 100).toFixed(1)}%), it did not cross the 55% confidence threshold required to issue a BUY alert, so the verdict defaults to HOLD. Even though the buying signal is relatively higher, we do not assure a buy entry yet. We recommend keeping this stock on your watchlist to monitor if momentum builds up.`
+                          : `Signal chance (${(analysisData.ml_result.Confidence * 100).toFixed(1)}%) is within neutral parameters. Defaulting to HOLD.`
+                        }
+                      </p>
+                    );
+                  })()}
                   
                   {/* Probability channels */}
                   <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
