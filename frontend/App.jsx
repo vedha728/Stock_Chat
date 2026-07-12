@@ -330,44 +330,75 @@ export default function App() {
                     const sellPct = analysisData.ml_result.Breakdown.SELL;
                     const isBuyHighestButHold = analysisData.ml_result.Recommendation === 'HOLD' && buyPct > holdPct && buyPct > sellPct;
 
+                    let bg, border, textColor, text;
+
+                    if (analysisData.ml_result.Recommendation === 'BUY') {
+                      bg = 'rgba(16, 185, 129, 0.08)';
+                      border = '1px solid rgba(16, 185, 129, 0.25)';
+                      textColor = '#A7F3D0';
+                      text = "Strong bullish factors align across technicals, FII/DII purchases, and sentiment triggers. Buying is recommended.";
+                    } else if (analysisData.ml_result.Recommendation === 'SELL') {
+                      bg = 'rgba(239, 68, 68, 0.08)';
+                      border = '1px solid rgba(239, 68, 68, 0.25)';
+                      textColor = '#FCA5A5';
+                      text = "Bearish momentum indicators and FII capital outflows suggest immediate downswings. Selling or avoiding new positions is advised.";
+                    } else if (isBuyHighestButHold) {
+                      bg = 'rgba(245, 158, 11, 0.09)';
+                      border = '1px solid rgba(245, 158, 11, 0.35)';
+                      textColor = '#FDE68A';
+                      text = (
+                        <span>
+                          <strong>⚠️ Note:</strong> Although BUY has the highest probability (<strong>{(buyPct * 100).toFixed(1)}%</strong>), it did not cross the <strong>55% confidence threshold</strong> required to issue a BUY alert, so the verdict defaults to <strong>HOLD</strong>. Even though the buying signal is relatively higher, we do not assure a buy entry yet. We recommend keeping this stock on your watchlist to monitor if momentum builds up.
+                        </span>
+                      );
+                    } else {
+                      bg = 'rgba(245, 158, 11, 0.06)';
+                      border = '1px solid rgba(245, 158, 11, 0.2)';
+                      textColor = '#FDE68A';
+                      text = `Signal chance (${(analysisData.ml_result.Confidence * 100).toFixed(1)}%) is within neutral parameters. Defaulting to HOLD.`;
+                    }
+
                     return (
-                      <p style={{ color: 'var(--text-secondary)', fontSize: '14px', lineHeight: '1.5', margin: 0, textAlign: 'left' }}>
-                        {analysisData.ml_result.Recommendation === 'BUY' 
-                          ? "Strong bullish factors align across technicals, FII/DII purchases, and sentiment triggers. Buying is recommended."
-                          : analysisData.ml_result.Recommendation === 'SELL' 
-                          ? "Bearish momentum indicators and FII capital outflows suggest immediate downswings. Selling or avoiding new positions is advised."
-                          : isBuyHighestButHold
-                          ? `⚠️ Note: Although BUY has the highest probability (${(buyPct * 100).toFixed(1)}%), it did not cross the 55% confidence threshold required to issue a BUY alert, so the verdict defaults to HOLD. Even though the buying signal is relatively higher, we do not assure a buy entry yet. We recommend keeping this stock on your watchlist to monitor if momentum builds up.`
-                          : `Signal chance (${(analysisData.ml_result.Confidence * 100).toFixed(1)}%) is within neutral parameters. Defaulting to HOLD.`
-                        }
-                      </p>
+                      <div style={{
+                        padding: '14px 18px',
+                        backgroundColor: bg,
+                        border: border,
+                        borderRadius: '8px',
+                        color: textColor,
+                        fontSize: '13.5px',
+                        lineHeight: '1.6',
+                        textAlign: 'left',
+                        marginTop: '12px'
+                      }}>
+                        {text}
+                      </div>
                     );
                   })()}
                   
                   {/* Probability channels */}
-                  <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <div style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
                     <div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '4px' }}>
-                        <span>📈 BUY Chance</span>
-                        <span>{(analysisData.ml_result.Breakdown.BUY * 100).toFixed(1)}%</span>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px', marginBottom: '6px' }}>
+                        <span style={{ fontWeight: 600, color: '#E2E8F0', display: 'flex', alignItems: 'center', gap: '6px' }}>📈 BUY Chance</span>
+                        <span style={{ fontSize: '15px', fontWeight: 700, color: 'var(--primary-mint)' }}>{(analysisData.ml_result.Breakdown.BUY * 100).toFixed(1)}%</span>
                       </div>
                       <div style={{ width: '100%', height: '6px', backgroundColor: '#1E293B', borderRadius: '3px', overflow: 'hidden' }}>
                         <div style={{ width: `${analysisData.ml_result.Breakdown.BUY * 100}%`, height: '100%', backgroundColor: 'var(--primary-emerald)' }}></div>
                       </div>
                     </div>
                     <div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '4px' }}>
-                        <span>⚖️ HOLD Chance</span>
-                        <span>{(analysisData.ml_result.Breakdown.HOLD * 100).toFixed(1)}%</span>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px', marginBottom: '6px' }}>
+                        <span style={{ fontWeight: 600, color: '#E2E8F0', display: 'flex', alignItems: 'center', gap: '6px' }}>⚖️ HOLD Chance</span>
+                        <span style={{ fontSize: '15px', fontWeight: 700, color: 'var(--warning-amber)' }}>{(analysisData.ml_result.Breakdown.HOLD * 100).toFixed(1)}%</span>
                       </div>
                       <div style={{ width: '100%', height: '6px', backgroundColor: '#1E293B', borderRadius: '3px', overflow: 'hidden' }}>
                         <div style={{ width: `${analysisData.ml_result.Breakdown.HOLD * 100}%`, height: '100%', backgroundColor: 'var(--warning-amber)' }}></div>
                       </div>
                     </div>
                     <div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '4px' }}>
-                        <span>📉 SELL Chance</span>
-                        <span>{(analysisData.ml_result.Breakdown.SELL * 100).toFixed(1)}%</span>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px', marginBottom: '6px' }}>
+                        <span style={{ fontWeight: 600, color: '#E2E8F0', display: 'flex', alignItems: 'center', gap: '6px' }}>📉 SELL Chance</span>
+                        <span style={{ fontSize: '15px', fontWeight: 700, color: 'var(--danger-red)' }}>{(analysisData.ml_result.Breakdown.SELL * 100).toFixed(1)}%</span>
                       </div>
                       <div style={{ width: '100%', height: '6px', backgroundColor: '#1E293B', borderRadius: '3px', overflow: 'hidden' }}>
                         <div style={{ width: `${analysisData.ml_result.Breakdown.SELL * 100}%`, height: '100%', backgroundColor: 'var(--danger-red)' }}></div>
