@@ -17,13 +17,54 @@ def predict_stock_action(feature_row: pd.DataFrame) -> dict:
     class_map  = {0: "SELL", 1: "HOLD", 2: "BUY"}
 
     if os.path.exists(model_path_json):
-        import xgboost as xgb
-        bst = xgb.Booster()
-        bst.load_model(model_path_json)
-        expected_features = bst.feature_names
-        feature_row_aligned = feature_row[expected_features]
-        dtrain = xgb.DMatrix(feature_row_aligned)
-        probs = bst.predict(dtrain)[0]
+        import json
+        import math
+        
+        with open(model_path_json, "r") as f:
+            model_data = json.load(f)
+            
+        feature_names = model_data["learner"]["feature_names"]
+        feature_dict = feature_row.iloc[0].to_dict()
+        X = [feature_dict.get(name, float("nan")) for name in feature_names]
+        
+        trees = model_data["learner"]["gradient_booster"]["model"]["trees"]
+        tree_info = model_data["learner"]["gradient_booster"]["model"]["tree_info"]
+        
+        base_score_str = model_data["learner"].get("learner_model_param", {}).get("base_score", "0.5")
+        if base_score_str.startswith("["):
+            base_margin = json.loads(base_score_str)
+        else:
+            val = float(base_score_str)
+            margin_val = math.log(val) if val > 0 else 0.0
+            base_margin = [margin_val, margin_val, margin_val]
+
+        raw_scores = [float(m) for m in base_margin]
+        
+        for t_idx, tree in enumerate(trees):
+            class_id = tree_info[t_idx]
+            left_children = tree["left_children"]
+            right_children = tree["right_children"]
+            split_indices = tree["split_indices"]
+            split_conditions = tree["split_conditions"]
+            default_left = tree["default_left"]
+            base_weights = tree["base_weights"]
+            
+            node = 0
+            while left_children[node] != -1:
+                f_idx = split_indices[node]
+                threshold = split_conditions[node]
+                val = X[f_idx]
+                
+                if val is None or math.isnan(val):
+                    node = left_children[node] if default_left[node] == 1 else right_children[node]
+                else:
+                    node = left_children[node] if val < threshold else right_children[node]
+                    
+            raw_scores[class_id] += base_weights[node]
+            
+        exp_scores = [math.exp(score) for score in raw_scores]
+        sum_exp = sum(exp_scores)
+        probs = [score / sum_exp for score in exp_scores]
         pred_class = int(np.argmax(probs))
     elif os.path.exists(model_path_pkl):
         model = joblib.load(model_path_pkl)

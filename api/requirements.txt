@@ -1,6 +1,5 @@
 pandas
 numpy
 yfinance
-xgboost==1.7.6
 google-genai
 requests
