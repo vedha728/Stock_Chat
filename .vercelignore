@@ -1,9 +1,9 @@
-# Ignore Streamlit & local dev python environment files during Vercel build
-requirements.txt
-requirements_web.txt
-streamlit_app.py
-.streamlit/
-verify.py
-app_test.py
-chatbot.py
-chatbot_pre_headline_scaling_backup.py
+# Only ignore files at the absolute root of the repository
+/requirements.txt
+/requirements_web.txt
+/streamlit_app.py
+/.streamlit/
+/verify.py
+/app_test.py
+/chatbot.py
+/chatbot_pre_headline_scaling_backup.py
