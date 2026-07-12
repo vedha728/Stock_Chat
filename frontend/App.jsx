@@ -73,6 +73,12 @@ export default function App() {
   // UI states
   const [newsExpanded, setNewsExpanded] = useState(false);
 
+  const qLower = query.toLowerCase();
+  const hasNewsIntent = qLower.includes("news") || qLower.includes("headline") || qLower.includes("headlines") || qLower.includes("article") || qLower.includes("articles");
+  const hasFundamentalsIntent = ["valuation", "debt", "pe", "pb", "roe", "mcap", "fundamental", "fundamentals", "market cap", "leverage", "profits"].some(w => qLower.includes(w));
+  const hasPriceIntent = ["price", "chart", "trend", "technical", "technicals", "rsi", "macd", "moving average", "buy", "sell", "hold", "should i", "verdict", "recommendation"].some(w => qLower.includes(w));
+  const isNewsOnly = hasNewsIntent && !hasFundamentalsIntent && !hasPriceIntent;
+
   const fetchAnalysis = async (searchQuery) => {
     if (!searchQuery.trim()) return;
     setLoading(true);
@@ -316,167 +322,25 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* Verdict Card */}
-                <div className="glass-card" style={{ 
-                  borderLeft: '4px solid', 
-                  borderColor: analysisData.ml_result.Recommendation === 'BUY' ? 'var(--primary-emerald)' : analysisData.ml_result.Recommendation === 'SELL' ? 'var(--danger-red)' : 'var(--warning-amber)',
-                  width: '100%'
-                }}>
-                  <h2 style={{ fontSize: '20px', fontWeight: 700, marginBottom: '8px', textAlign: 'left' }}>
-                    Verdict: {analysisData.ml_result.Recommendation} ({(analysisData.ml_result.Confidence * 100).toFixed(1)}% Confidence)
-                  </h2>
-                  {(() => {
-                    const buyPct = analysisData.ml_result.Breakdown.BUY;
-                    const holdPct = analysisData.ml_result.Breakdown.HOLD;
-                    const sellPct = analysisData.ml_result.Breakdown.SELL;
+                {isNewsOnly ? (
+                  /* --- NEWS ONLY PATH --- */
+                  <div className="glass-card" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <h3 style={{ fontSize: '16px', fontWeight: 600, color: '#FFFFFF', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        📰 Latest News & Sentiment Sources for {analysisData.company_name}
+                      </h3>
+                    </div>
                     
-                    const isBuyHighestButHold = analysisData.ml_result.Recommendation === 'HOLD' && buyPct > holdPct && buyPct > sellPct;
-                    const isSellHighestButHold = analysisData.ml_result.Recommendation === 'HOLD' && sellPct > holdPct && sellPct > buyPct;
-
-                    let bg, border, textColor, text;
-
-                    if (analysisData.ml_result.Recommendation === 'BUY') {
-                      bg = 'rgba(16, 185, 129, 0.08)';
-                      border = '1px solid rgba(16, 185, 129, 0.25)';
-                      textColor = '#A7F3D0';
-                      text = "Strong bullish factors align across technicals, FII/DII purchases, and sentiment triggers. Buying is recommended.";
-                    } else if (analysisData.ml_result.Recommendation === 'SELL') {
-                      bg = 'rgba(239, 68, 68, 0.08)';
-                      border = '1px solid rgba(239, 68, 68, 0.25)';
-                      textColor = '#FCA5A5';
-                      text = "Bearish momentum indicators and FII capital outflows suggest immediate downswings. Selling or avoiding new positions is advised.";
-                    } else if (isBuyHighestButHold) {
-                      bg = 'rgba(245, 158, 11, 0.09)';
-                      border = '1px solid rgba(245, 158, 11, 0.35)';
-                      textColor = '#FDE68A';
-                      text = (
-                        <span>
-                          <strong>⚠️ Note:</strong> Although BUY has the highest probability (<strong>{(buyPct * 100).toFixed(1)}%</strong>), it did not cross the <strong>55% confidence threshold</strong> required to issue a BUY alert, so the verdict defaults to <strong>HOLD</strong>. Even though the buying signal is relatively higher, we do not assure a buy entry yet. We recommend keeping this stock on your watchlist to monitor if momentum builds up.
-                        </span>
-                      );
-                    } else if (isSellHighestButHold) {
-                      bg = 'rgba(245, 158, 11, 0.09)';
-                      border = '1px solid rgba(245, 158, 11, 0.35)';
-                      textColor = '#FDE68A';
-                      text = (
-                        <span>
-                          <strong>⚠️ Note:</strong> Although SELL has the highest probability (<strong>{(sellPct * 100).toFixed(1)}%</strong>), it did not cross the <strong>55% confidence threshold</strong> required to issue a SELL alert, so the verdict defaults to <strong>HOLD</strong>. Even though the selling signal is relatively higher, we do not suggest selling yet. We recommend keeping this stock on your watchlist to monitor from now on.
-                        </span>
-                      );
-                    } else {
-                      bg = 'rgba(245, 158, 11, 0.06)';
-                      border = '1px solid rgba(245, 158, 11, 0.2)';
-                      textColor = '#FDE68A';
-                      text = `Signal chance (${(analysisData.ml_result.Confidence * 100).toFixed(1)}%) is within neutral parameters. Defaulting to HOLD.`;
-                    }
-
-                    return (
-                      <div style={{
-                        padding: '14px 18px',
-                        backgroundColor: bg,
-                        border: border,
-                        borderRadius: '8px',
-                        color: textColor,
-                        fontSize: '13.5px',
-                        lineHeight: '1.6',
-                        textAlign: 'left',
-                        marginTop: '12px'
-                      }}>
-                        {text}
-                      </div>
-                    );
-                  })()}
-                  
-                  {/* Probability channels */}
-                  <div style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    <div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px', marginBottom: '6px' }}>
-                        <span style={{ fontWeight: 600, color: '#E2E8F0', display: 'flex', alignItems: 'center', gap: '6px' }}>📈 BUY Chance</span>
-                        <span style={{ fontSize: '15px', fontWeight: 700, color: 'var(--primary-mint)' }}>{(analysisData.ml_result.Breakdown.BUY * 100).toFixed(1)}%</span>
-                      </div>
-                      <div style={{ width: '100%', height: '10px', backgroundColor: '#1E293B', borderRadius: '5px', overflow: 'hidden' }}>
-                        <div style={{ width: `${analysisData.ml_result.Breakdown.BUY * 100}%`, height: '100%', backgroundColor: 'var(--primary-emerald)' }}></div>
-                      </div>
-                    </div>
-                    <div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px', marginBottom: '6px' }}>
-                        <span style={{ fontWeight: 600, color: '#E2E8F0', display: 'flex', alignItems: 'center', gap: '6px' }}>⚖️ HOLD Chance</span>
-                        <span style={{ fontSize: '15px', fontWeight: 700, color: 'var(--warning-amber)' }}>{(analysisData.ml_result.Breakdown.HOLD * 100).toFixed(1)}%</span>
-                      </div>
-                      <div style={{ width: '100%', height: '10px', backgroundColor: '#1E293B', borderRadius: '5px', overflow: 'hidden' }}>
-                        <div style={{ width: `${analysisData.ml_result.Breakdown.HOLD * 100}%`, height: '100%', backgroundColor: 'var(--warning-amber)' }}></div>
-                      </div>
-                    </div>
-                    <div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px', marginBottom: '6px' }}>
-                        <span style={{ fontWeight: 600, color: '#E2E8F0', display: 'flex', alignItems: 'center', gap: '6px' }}>📉 SELL Chance</span>
-                        <span style={{ fontSize: '15px', fontWeight: 700, color: 'var(--danger-red)' }}>{(analysisData.ml_result.Breakdown.SELL * 100).toFixed(1)}%</span>
-                      </div>
-                      <div style={{ width: '100%', height: '10px', backgroundColor: '#1E293B', borderRadius: '5px', overflow: 'hidden' }}>
-                        <div style={{ width: `${analysisData.ml_result.Breakdown.SELL * 100}%`, height: '100%', backgroundColor: 'var(--danger-red)' }}></div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Row 1: Signals Summary & Chart */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: '24px', alignItems: 'start' }}>
-                  <SignalsSummary 
-                    technicals={analysisData.technical_indicators}
-                    sentiment={analysisData.sentiment}
-                    institutional={analysisData.institutional_flow}
-                  />
-                  <ChartView 
-                    data={analysisData.historical_prices}
-                    companyName={analysisData.company_name}
-                  />
-                </div>
-
-                {/* Row 2: Technical Details & Fundamentals Side-by-Side */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', alignItems: 'start' }}>
-                  <TechnicalDetails 
-                    technicals={analysisData.technical_indicators}
-                    currentPrice={analysisData.current_price}
-                  />
-                  <Fundamentals data={analysisData.fundamentals} />
-                </div>
-
-                {/* Explanation (Full width) */}
-                <ExplanationGuide 
-                  modelAnalysis={analysisData.model_analysis}
-                  beginnerExplanation={analysisData.beginner_explanation}
-                />
-
-                {/* News List (Full width & Collapsible dropdown) */}
-                <div className="glass-card" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  <div 
-                    onClick={() => setNewsExpanded(!newsExpanded)} 
-                    style={{ 
-                      display: 'flex', 
-                      justifyContent: 'space-between', 
-                      alignItems: 'center', 
-                      cursor: 'pointer',
-                      userSelect: 'none'
-                    }}
-                  >
-                    <h3 style={{ fontSize: '16px', fontWeight: 600, color: '#FFFFFF', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      📰 Latest News & Sentiment Sources
-                    </h3>
-                    <span style={{ fontSize: '16px', color: '#94A3B8' }}>
-                      {newsExpanded ? '▲' : '▼'}
-                    </span>
-                  </div>
-                  
-                  {newsExpanded && (
                     <div style={{ marginTop: '12px' }}>
                       {analysisData.news_headlines.length === 0 ? (
-                        <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>No recent news articles found.</p>
+                        <p style={{ color: 'var(--text-secondary)', fontSize: '14px', textAlign: 'left' }}>No recent news articles found.</p>
                       ) : (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                           {analysisData.news_headlines.map((news, idx) => (
                             <div key={idx} style={{ 
                               paddingBottom: '12px', 
-                              borderBottom: idx < analysisData.news_headlines.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none' 
+                              borderBottom: idx < analysisData.news_headlines.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none',
+                              textAlign: 'left'
                             }}>
                               <a 
                                 href={news.url} 
@@ -502,8 +366,201 @@ export default function App() {
                         </div>
                       )}
                     </div>
-                  )}
-                </div>
+                  </div>
+                ) : (
+                  /* --- FULL DASHBOARD PATH --- */
+                  <>
+                    {/* Verdict Card */}
+                    <div className="glass-card" style={{ 
+                      borderLeft: '4px solid', 
+                      borderColor: analysisData.ml_result.Recommendation === 'BUY' ? 'var(--primary-emerald)' : analysisData.ml_result.Recommendation === 'SELL' ? 'var(--danger-red)' : 'var(--warning-amber)',
+                      width: '100%'
+                    }}>
+                      <h2 style={{ fontSize: '20px', fontWeight: 700, marginBottom: '8px', textAlign: 'left' }}>
+                        Verdict: {analysisData.ml_result.Recommendation} ({(analysisData.ml_result.Confidence * 100).toFixed(1)}% Confidence)
+                      </h2>
+                      {(() => {
+                        const buyPct = analysisData.ml_result.Breakdown.BUY;
+                        const holdPct = analysisData.ml_result.Breakdown.HOLD;
+                        const sellPct = analysisData.ml_result.Breakdown.SELL;
+                        
+                        const isBuyHighestButHold = analysisData.ml_result.Recommendation === 'HOLD' && buyPct > holdPct && buyPct > sellPct;
+                        const isSellHighestButHold = analysisData.ml_result.Recommendation === 'HOLD' && sellPct > holdPct && sellPct > buyPct;
+
+                        let bg, border, textColor, text;
+
+                        if (analysisData.ml_result.Recommendation === 'BUY') {
+                          bg = 'rgba(16, 185, 129, 0.08)';
+                          border = '1px solid rgba(16, 185, 129, 0.25)';
+                          textColor = '#A7F3D0';
+                          text = "Strong bullish factors align across technicals, FII/DII purchases, and sentiment triggers. Buying is recommended.";
+                        } else if (analysisData.ml_result.Recommendation === 'SELL') {
+                          bg = 'rgba(239, 68, 68, 0.08)';
+                          border = '1px solid rgba(239, 68, 68, 0.25)';
+                          textColor = '#FCA5A5';
+                          text = "Bearish momentum indicators and FII capital outflows suggest immediate downswings. Selling or avoiding new positions is advised.";
+                        } else if (isBuyHighestButHold) {
+                          bg = 'rgba(245, 158, 11, 0.09)';
+                          border = '1px solid rgba(245, 158, 11, 0.35)';
+                          textColor = '#FDE68A';
+                          text = (
+                            <span>
+                              <strong>⚠️ Note:</strong> Although BUY has the highest probability (<strong>{(buyPct * 100).toFixed(1)}%</strong>), it did not cross the <strong>55% confidence threshold</strong> required to issue a BUY alert, so the verdict defaults to <strong>HOLD</strong>. Even though the buying signal is relatively higher, we do not assure a buy entry yet. We recommend keeping this stock on your watchlist to monitor if momentum builds up.
+                            </span>
+                          );
+                        } else if (isSellHighestButHold) {
+                          bg = 'rgba(245, 158, 11, 0.09)';
+                          border = '1px solid rgba(245, 158, 11, 0.35)';
+                          textColor = '#FDE68A';
+                          text = (
+                            <span>
+                              <strong>⚠️ Note:</strong> Although SELL has the highest probability (<strong>{(sellPct * 100).toFixed(1)}%</strong>), it did not cross the <strong>55% confidence threshold</strong> required to issue a SELL alert, so the verdict defaults to <strong>HOLD</strong>. Even though the selling signal is relatively higher, we do not suggest selling yet. We recommend keeping this stock on your watchlist to monitor from now on.
+                            </span>
+                          );
+                        } else {
+                          bg = 'rgba(245, 158, 11, 0.06)';
+                          border = '1px solid rgba(245, 158, 11, 0.2)';
+                          textColor = '#FDE68A';
+                          text = `Signal chance (${(analysisData.ml_result.Confidence * 100).toFixed(1)}%) is within neutral parameters. Defaulting to HOLD.`;
+                        }
+
+                        return (
+                          <div style={{
+                            padding: '14px 18px',
+                            backgroundColor: bg,
+                            border: border,
+                            borderRadius: '8px',
+                            color: textColor,
+                            fontSize: '13.5px',
+                            lineHeight: '1.6',
+                            textAlign: 'left',
+                            marginTop: '12px'
+                          }}>
+                            {text}
+                          </div>
+                        );
+                      })()}
+                      
+                      {/* Probability channels */}
+                      <div style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                        <div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px', marginBottom: '6px' }}>
+                            <span style={{ fontWeight: 600, color: '#E2E8F0', display: 'flex', alignItems: 'center', gap: '6px' }}>📈 BUY Chance</span>
+                            <span style={{ fontSize: '15px', fontWeight: 700, color: 'var(--primary-mint)' }}>{(analysisData.ml_result.Breakdown.BUY * 100).toFixed(1)}%</span>
+                          </div>
+                          <div style={{ width: '100%', height: '10px', backgroundColor: '#1E293B', borderRadius: '5px', overflow: 'hidden' }}>
+                            <div style={{ width: `${analysisData.ml_result.Breakdown.BUY * 100}%`, height: '100%', backgroundColor: 'var(--primary-emerald)' }}></div>
+                          </div>
+                        </div>
+                        <div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px', marginBottom: '6px' }}>
+                            <span style={{ fontWeight: 600, color: '#E2E8F0', display: 'flex', alignItems: 'center', gap: '6px' }}>⚖️ HOLD Chance</span>
+                            <span style={{ fontSize: '15px', fontWeight: 700, color: 'var(--warning-amber)' }}>{(analysisData.ml_result.Breakdown.HOLD * 100).toFixed(1)}%</span>
+                          </div>
+                          <div style={{ width: '100%', height: '10px', backgroundColor: '#1E293B', borderRadius: '5px', overflow: 'hidden' }}>
+                            <div style={{ width: `${analysisData.ml_result.Breakdown.HOLD * 100}%`, height: '100%', backgroundColor: 'var(--warning-amber)' }}></div>
+                          </div>
+                        </div>
+                        <div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px', marginBottom: '6px' }}>
+                            <span style={{ fontWeight: 600, color: '#E2E8F0', display: 'flex', alignItems: 'center', gap: '6px' }}>📉 SELL Chance</span>
+                            <span style={{ fontSize: '15px', fontWeight: 700, color: 'var(--danger-red)' }}>{(analysisData.ml_result.Breakdown.SELL * 100).toFixed(1)}%</span>
+                          </div>
+                          <div style={{ width: '100%', height: '10px', backgroundColor: '#1E293B', borderRadius: '5px', overflow: 'hidden' }}>
+                            <div style={{ width: `${analysisData.ml_result.Breakdown.SELL * 100}%`, height: '100%', backgroundColor: 'var(--danger-red)' }}></div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Row 1: Signals Summary & Chart */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: '24px', alignItems: 'start' }}>
+                      <SignalsSummary 
+                        technicals={analysisData.technical_indicators}
+                        sentiment={analysisData.sentiment}
+                        institutional={analysisData.institutional_flow}
+                      />
+                      <ChartView 
+                        data={analysisData.historical_prices}
+                        companyName={analysisData.company_name}
+                      />
+                    </div>
+
+                    {/* Row 2: Technical Details & Fundamentals Side-by-Side */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', alignItems: 'start' }}>
+                      <TechnicalDetails 
+                        technicals={analysisData.technical_indicators}
+                        currentPrice={analysisData.current_price}
+                      />
+                      <Fundamentals data={analysisData.fundamentals} />
+                    </div>
+
+                    {/* Explanation (Full width) */}
+                    <ExplanationGuide 
+                      modelAnalysis={analysisData.model_analysis}
+                      beginnerExplanation={analysisData.beginner_explanation}
+                    />
+
+                    {/* News List (Full width & Collapsible dropdown) */}
+                    <div className="glass-card" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      <div 
+                        onClick={() => setNewsExpanded(!newsExpanded)} 
+                        style={{ 
+                          display: 'flex', 
+                          justifyContent: 'space-between', 
+                          alignItems: 'center', 
+                          cursor: 'pointer',
+                          userSelect: 'none'
+                        }}
+                      >
+                        <h3 style={{ fontSize: '16px', fontWeight: 600, color: '#FFFFFF', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          📰 Latest News & Sentiment Sources
+                        </h3>
+                        <span style={{ fontSize: '16px', color: '#94A3B8' }}>
+                          {newsExpanded ? '▲' : '▼'}
+                        </span>
+                      </div>
+                      
+                      {newsExpanded && (
+                        <div style={{ marginTop: '12px' }}>
+                          {analysisData.news_headlines.length === 0 ? (
+                            <p style={{ color: 'var(--text-secondary)', fontSize: '14px', textAlign: 'left' }}>No recent news articles found.</p>
+                          ) : (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                              {analysisData.news_headlines.map((news, idx) => (
+                                <div key={idx} style={{ 
+                                  paddingBottom: '12px', 
+                                  borderBottom: idx < analysisData.news_headlines.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none',
+                                  textAlign: 'left'
+                                }}>
+                                  <a 
+                                    href={news.url} 
+                                    target="_blank" 
+                                    rel="noreferrer"
+                                    style={{ 
+                                      color: '#38BDF8', 
+                                      fontSize: '14px', 
+                                      fontWeight: 600, 
+                                      textDecoration: 'none',
+                                      display: 'block',
+                                      marginBottom: '4px'
+                                    }}
+                                  >
+                                    {idx + 1}. {news.title}
+                                  </a>
+                                  <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Source: {news.source}</span>
+                                  <p style={{ fontSize: '12px', color: '#94A3B8', marginTop: '6px', fontStyle: 'italic', lineHeight: '1.4' }}>
+                                    "{news.description}"
+                                  </p>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
               </div>
             )}
           </div>
