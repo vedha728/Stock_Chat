@@ -7,3 +7,8 @@
 /app_test.py
 /chatbot.py
 /chatbot_pre_headline_scaling_backup.py
+
+# Exclude heavy training datasets and redundant models from Vercel Functions
+/data/processed/
+/data/raw/
+/models/*.pkl
