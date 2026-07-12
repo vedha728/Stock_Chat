@@ -2,7 +2,6 @@ import os
 import yfinance as yf
 import pandas as pd
 import numpy as np
-import joblib
 
 from indicators import calculate_technical_indicators
 from feature_engineering import compile_feature_matrix
@@ -38,19 +37,7 @@ def run_backtest(ticker: str) -> dict:
 
     Returns: A summary dictionary of performance metrics.
     """
-    model_path = "models/xgboost_model.pkl"
-    if not os.path.exists(model_path):
-        raise FileNotFoundError("Model not trained yet! Run: python src/train_model.py")
-
-    model = joblib.load(model_path)
-
-    # Verify the model has the expected number of features (19)
-    expected_features = 19
-    if hasattr(model, 'n_features_in_') and model.n_features_in_ != expected_features:
-        raise ValueError(
-            f"Model has {model.n_features_in_} features, but backtest expects {expected_features}. "
-            "Please retrain the model: python src/train_model.py"
-        )
+    # Model loading and predictions are deferred to the step-by-step parser below
 
     # 1. Fetch last 1 year of daily prices for the stock FIRST
     #    (we need the actual date range before generating FII/DII)
@@ -76,7 +63,9 @@ def run_backtest(ticker: str) -> dict:
     #    is 0 rows → empty feature_df → "No portfolio data" error.
     #    Solution: always regenerate for the actual backtest window dates.
     from institutional import generate_historical_fii_dii_csv
-    backtest_fii_csv = f"data/fii_dii/backtest_fii_dii_{start_dt_str}_{end_dt_str}.csv"
+    base_dir = "/tmp/data/fii_dii" if os.environ.get("VERCEL") == "1" else "data/fii_dii"
+    os.makedirs(base_dir, exist_ok=True)
+    backtest_fii_csv = os.path.join(base_dir, f"backtest_fii_dii_{start_dt_str}_{end_dt_str}.csv")
     if not os.path.exists(backtest_fii_csv):
         print(f"[*] Generating FII/DII data for backtest window ({start_dt_str} to {end_dt_str})...")
         generate_historical_fii_dii_csv(start_dt_str, end_dt_str, output_path=backtest_fii_csv)
@@ -129,10 +118,77 @@ def run_backtest(ticker: str) -> dict:
 
     X = feature_df[feature_cols]
 
-    # Get both hard predictions AND raw probabilities
-    # Apply confidence threshold to match live chatbot logic
-    raw_predictions = model.predict(X)          # Array: 0 (SELL), 1 (HOLD), 2 (BUY)
-    probabilities   = model.predict_proba(X)    # Array: [sell_prob, hold_prob, buy_prob] per row
+    model_path_json = "models/xgboost_model.json"
+    model_path_pkl = "models/xgboost_model.pkl"
+
+    if os.path.exists(model_path_json):
+        import json
+        import math
+        
+        with open(model_path_json, "r") as f:
+            model_data = json.load(f)
+            
+        feature_names = model_data["learner"]["feature_names"]
+        trees = model_data["learner"]["gradient_booster"]["model"]["trees"]
+        tree_info = model_data["learner"]["gradient_booster"]["model"]["tree_info"]
+        
+        base_score_str = model_data["learner"].get("learner_model_param", {}).get("base_score", "0.5")
+        if base_score_str.startswith("["):
+            base_margin = json.loads(base_score_str)
+        else:
+            val = float(base_score_str)
+            margin_val = math.log(val) if val > 0 else 0.0
+            base_margin = [margin_val, margin_val, margin_val]
+            
+        base_margin = [float(m) for m in base_margin]
+        
+        raw_predictions = []
+        probabilities = []
+        
+        # Convert X to list of dicts for extremely fast row-by-row iteration
+        rows = X.to_dict(orient="records")
+        
+        for row_dict in rows:
+            row_X = [row_dict.get(name, float("nan")) for name in feature_names]
+            raw_scores = list(base_margin)
+            
+            for t_idx, tree in enumerate(trees):
+                class_id = tree_info[t_idx]
+                left_children = tree["left_children"]
+                right_children = tree["right_children"]
+                split_indices = tree["split_indices"]
+                split_conditions = tree["split_conditions"]
+                default_left = tree["default_left"]
+                base_weights = tree["base_weights"]
+                
+                node = 0
+                while left_children[node] != -1:
+                    f_idx = split_indices[node]
+                    threshold = split_conditions[node]
+                    val = row_X[f_idx]
+                    
+                    if val is None or math.isnan(val):
+                        node = left_children[node] if default_left[node] == 1 else right_children[node]
+                    else:
+                        node = left_children[node] if val < threshold else right_children[node]
+                        
+                raw_scores[class_id] += base_weights[node]
+                
+            exp_scores = [math.exp(score) for score in raw_scores]
+            sum_exp = sum(exp_scores)
+            probs = [score / sum_exp for score in exp_scores]
+            pred_class = int(np.argmax(probs))
+            
+            raw_predictions.append(pred_class)
+            probabilities.append(probs)
+            
+    elif os.path.exists(model_path_pkl):
+        import joblib
+        model = joblib.load(model_path_pkl)
+        raw_predictions = model.predict(X)
+        probabilities   = model.predict_proba(X)
+    else:
+        raise FileNotFoundError("Model file not found! Train model first.")
 
     # Apply threshold: if top confidence < 55%, override to HOLD (1)
     thresholded_signals = []

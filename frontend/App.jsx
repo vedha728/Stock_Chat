@@ -15,6 +15,24 @@ const LOADING_STEPS = [
   "Generating AI strategic explanation..."
 ];
 
+const COMPARE_LOADING_STEPS = [
+  "Resolving stock symbols for comparison...",
+  "Fetching technical charts & indicators for all target stocks...",
+  "Retrieving news headlines & sentiment trends...",
+  "Comparing institutional flow signals (FII/DII)...",
+  "Running multi-signal prediction models...",
+  "Generating AI side-by-side comparison report..."
+];
+
+const BACKTEST_LOADING_STEPS = [
+  "Retrieving 1-year historical price data...",
+  "Generating backtest window FII/DII capital flow cache...",
+  "Synthesizing technical indicators day-by-day...",
+  "Simulating trade execution strategies...",
+  "Calculating benchmark buy & hold performance...",
+  "Finalizing performance report metrics..."
+];
+
 export default function App() {
   const [activeMode, setActiveMode] = useState("analysis");
   const [query, setQuery] = useState("");
@@ -388,17 +406,30 @@ export default function App() {
               </h3>
               <div>
                 <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '6px', fontWeight: 500 }}>
-                  Enter stock names separated by commas (e.g. Wipro, Infosys, TCS):
+                  Ask any comparison query (e.g. 'Compare TCS and Wipro' or 'Which is best to buy TCS or Wipro') or enter stock names:
                 </p>
                 <input
                   type="text"
                   value={compareQuery}
                   onChange={(e) => setCompareQuery(e.target.value)}
                   onKeyDown={(e) => handleKeyDown(e, fetchComparison, compareQuery)}
-                  placeholder="Wipro, Infosys, TCS"
+                  placeholder="e.g. Compare TCS and Wipro"
                   className="search-input"
                 />
               </div>
+              
+              {/* Inline loading progress */}
+              {loading && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '16px', alignItems: 'flex-start', textAlign: 'left' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#E2E8F0', fontSize: '13px', fontWeight: 500 }}>
+                    <div className="spinner-mini"></div>
+                    <span>{COMPARE_LOADING_STEPS[loadingStep % COMPARE_LOADING_STEPS.length]}</span>
+                  </div>
+                  <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontStyle: 'italic', paddingLeft: '28px' }}>
+                    Please wait a few seconds while we synthesize real-time market data...
+                  </span>
+                </div>
+              )}
             </div>
 
             {compareData && !loading && (
@@ -499,17 +530,34 @@ export default function App() {
                 </div>
 
                 {/* AI Summary report */}
-                <div className="glass-card">
-                  <h3 style={{ fontSize: '16px', fontWeight: 600, color: '#FFFFFF', marginBottom: '12px' }}>
-                    🧠 AI Side-by-Side Comparison Summary
-                  </h3>
-                  <div style={{ 
-                    fontSize: '14px', 
-                    color: '#E2E8F0', 
-                    lineHeight: '1.6', 
-                    whiteSpace: 'pre-line' 
-                  }}>
-                    {compareData.ai_summary}
+                <div className="glass-card" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  <div>
+                    <h3 style={{ fontSize: '16px', fontWeight: 600, color: '#FFFFFF', marginBottom: '12px' }}>
+                      🧠 AI Side-by-Side Comparison Summary
+                    </h3>
+                    <div style={{ 
+                      fontSize: '14px', 
+                      color: '#E2E8F0', 
+                      lineHeight: '1.6', 
+                      whiteSpace: 'pre-line' 
+                    }}>
+                      {compareData.ai_summary}
+                    </div>
+                  </div>
+                  
+                  {/* Follow-up button */}
+                  <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '16px', display: 'flex', justifyContent: 'flex-start' }}>
+                    <button
+                      onClick={() => {
+                        const tickerNames = compareData.stocks.map(s => s.ticker.split('.')[0]).join(' and ');
+                        setQuery(`Based on the comparison of ${tickerNames}, what are the key risks?`);
+                        setActiveMode("analysis");
+                      }}
+                      className="btn-pill"
+                      style={{ width: 'auto', padding: '10px 20px', backgroundColor: 'var(--primary-emerald)', borderColor: 'var(--primary-emerald)' }}
+                    >
+                      💬 Ask a Follow-up Question in Chat
+                    </button>
                   </div>
                 </div>
               </div>
@@ -524,6 +572,24 @@ export default function App() {
               <h3 style={{ fontSize: '18px', fontWeight: 600, color: '#FFFFFF', textAlign: 'center' }}>
                 📈 Run 1-Year Trade Simulation Backtest
               </h3>
+              
+              {/* Educational Explanation Box */}
+              <div style={{
+                padding: '16px 20px',
+                backgroundColor: 'rgba(56, 189, 248, 0.06)',
+                border: '1px solid rgba(56, 189, 248, 0.15)',
+                borderRadius: '10px',
+                fontSize: '13px',
+                lineHeight: '1.6',
+                color: '#94A3B8',
+                textAlign: 'left'
+              }}>
+                💡 <strong>What is Backtesting?</strong> It runs a 1-year historical simulation of our machine learning trading model on the selected stock. 
+                Starting with <strong>Rs. 100,000</strong>, it automatically enters a trade (BUY) when predictions are above <strong>55% confidence</strong> and exits 
+                the trade after <strong>5 days</strong> (or upon a SELL signal). This helps you evaluate if the model successfully avoids downswings 
+                and beats a benchmark Buy & Hold strategy.
+              </div>
+
               <div>
                 <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '6px', fontWeight: 500 }}>
                   Enter stock name or symbol to backtest:
@@ -537,6 +603,19 @@ export default function App() {
                   className="search-input"
                 />
               </div>
+              
+              {/* Inline loading progress */}
+              {loading && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '16px', alignItems: 'flex-start', textAlign: 'left' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#E2E8F0', fontSize: '13px', fontWeight: 500 }}>
+                    <div className="spinner-mini"></div>
+                    <span>{BACKTEST_LOADING_STEPS[loadingStep % BACKTEST_LOADING_STEPS.length]}</span>
+                  </div>
+                  <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontStyle: 'italic', paddingLeft: '28px' }}>
+                    Please wait a few seconds while we run the simulation matrix...
+                  </span>
+                </div>
+              )}
             </div>
 
             {backtestData && !loading && (
