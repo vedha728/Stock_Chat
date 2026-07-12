@@ -293,11 +293,14 @@ export default function App() {
                   display: 'flex', 
                   justifyContent: 'space-between', 
                   alignItems: 'center', 
-                  padding: '20px 24px', 
+                  padding: '16px 20px', 
                   background: 'linear-gradient(135deg, #1E293B 0%, #0F172A 100%)',
                   border: '1px solid #242E42',
                   borderLeft: '4px solid var(--primary-emerald)',
-                  borderRadius: '12px'
+                  borderRadius: '12px',
+                  maxWidth: '650px',
+                  width: '100%',
+                  margin: '0 auto'
                 }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', textAlign: 'left' }}>
                     <span style={{ fontSize: '11px', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 600 }}>Target Stock</span>
