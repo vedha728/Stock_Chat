@@ -412,25 +412,58 @@ export default function App() {
                           bg = 'rgba(245, 158, 11, 0.09)';
                           border = '1px solid rgba(245, 158, 11, 0.35)';
                           textColor = '#FDE68A';
-                          text = (
-                            <span>
-                              <strong>⚠️ Note:</strong> Although BUY has the highest probability (<strong>{(buyPct * 100).toFixed(1)}%</strong>), it did not cross the <strong>55% confidence threshold</strong> required to issue a BUY alert, so the verdict defaults to <strong>HOLD</strong>. Even though the buying signal is relatively higher, we do not assure a buy entry yet. We recommend keeping this stock on your watchlist to monitor if momentum builds up.
-                            </span>
-                          );
+                          const queryLower = query.toLowerCase();
+                          const isAskedSell = queryLower.includes("sell") || queryLower.includes("exit") || queryLower.includes("unload");
+                          
+                          if (isAskedSell) {
+                            text = (
+                              <span>
+                                <strong>⚠️ Note:</strong> Although BUY has the highest probability (<strong>{(buyPct * 100).toFixed(1)}%</strong>), it did not cross the <strong>55% confidence threshold</strong> required to issue a BUY alert, so the verdict defaults to <strong>HOLD</strong>. Since the buying momentum is relatively higher, we advise against selling your positions at this time. We recommend keeping this stock on your watchlist to monitor if trends continue to improve before exiting.
+                              </span>
+                            );
+                          } else {
+                            text = (
+                              <span>
+                                <strong>⚠️ Note:</strong> Although BUY has the highest probability (<strong>{(buyPct * 100).toFixed(1)}%</strong>), it did not cross the <strong>55% confidence threshold</strong> required to issue a BUY alert, so the verdict defaults to <strong>HOLD</strong>. Even though the buying signal is relatively higher, we do not assure a buy entry yet. We recommend keeping this stock on your watchlist to monitor if momentum builds up.
+                              </span>
+                            );
+                          }
                         } else if (isSellHighestButHold) {
                           bg = 'rgba(245, 158, 11, 0.09)';
                           border = '1px solid rgba(245, 158, 11, 0.35)';
                           textColor = '#FDE68A';
-                          text = (
-                            <span>
-                              <strong>⚠️ Note:</strong> Although SELL has the highest probability (<strong>{(sellPct * 100).toFixed(1)}%</strong>), it did not cross the <strong>55% confidence threshold</strong> required to issue a SELL alert, so the verdict defaults to <strong>HOLD</strong>. Even though the selling signal is relatively higher, we do not suggest selling yet. We recommend keeping this stock on your watchlist to monitor from now on.
-                            </span>
-                          );
+                          const queryLower = query.toLowerCase();
+                          const isAskedBuy = queryLower.includes("buy") || queryLower.includes("entry") || queryLower.includes("purchase");
+                          
+                          if (isAskedBuy) {
+                            text = (
+                              <span>
+                                <strong>⚠️ Note:</strong> Although SELL has the highest probability (<strong>{(sellPct * 100).toFixed(1)}%</strong>), it did not cross the <strong>55% confidence threshold</strong> required to issue a SELL alert, so the verdict defaults to <strong>HOLD</strong>. Since the selling pressure is relatively higher, we strongly advise against buying this stock right now. We recommend keeping it on your watchlist to monitor from now on before making any entry decisions.
+                              </span>
+                            );
+                          } else {
+                            text = (
+                              <span>
+                                <strong>⚠️ Note:</strong> Although SELL has the highest probability (<strong>{(sellPct * 100).toFixed(1)}%</strong>), it did not cross the <strong>55% confidence threshold</strong> required to issue a SELL alert, so the verdict defaults to <strong>HOLD</strong>. Even though the selling signal is relatively higher, we do not suggest selling yet. We recommend keeping this stock on your watchlist to monitor from now on.
+                              </span>
+                            );
+                          }
                         } else {
                           bg = 'rgba(245, 158, 11, 0.06)';
                           border = '1px solid rgba(245, 158, 11, 0.2)';
                           textColor = '#FDE68A';
-                          text = `Signal chance (${(analysisData.ml_result.Confidence * 100).toFixed(1)}%) is within neutral parameters. Defaulting to HOLD.`;
+                          
+                          const queryLower = query.toLowerCase();
+                          const isAskedBuy = queryLower.includes("buy") || queryLower.includes("entry") || queryLower.includes("purchase");
+                          const isAskedSell = queryLower.includes("sell") || queryLower.includes("exit") || queryLower.includes("unload");
+
+                          if (isAskedBuy) {
+                            text = `Signal chance (${(analysisData.ml_result.Confidence * 100).toFixed(1)}%) is within neutral parameters. Defaulting to HOLD. We advise not to buy new shares at this time, and instead keep this stock on your watchlist to monitor for a clearer entry signal.`;
+                          } else if (isAskedSell) {
+                            text = `Signal chance (${(analysisData.ml_result.Confidence * 100).toFixed(1)}%) is within neutral parameters. Defaulting to HOLD. We advise not to sell your current holdings at this time, and instead keep this stock on your watchlist to monitor for a clearer exit signal.`;
+                          } else {
+                            text = `Signal chance (${(analysisData.ml_result.Confidence * 100).toFixed(1)}%) is within neutral parameters. Defaulting to HOLD.`;
+                          }
                         }
 
                         return (
