@@ -11,21 +11,25 @@ export default function Sidebar({ activeMode, setActiveMode }) {
   const [checkQuery, setCheckQuery] = useState("");
   const [checkResult, setCheckResult] = useState(null);
 
-  const handleCheck = (val) => {
-    setCheckQuery(val);
+  const runCheck = (val) => {
     if (!val.trim()) {
       setCheckResult(null);
       return;
     }
     const clean = val.toLowerCase().trim();
-    // fuzzy match check
-    const isSupported = SUPPORTED_LIST.some(item => 
+    const isSupported = SUPPORTED_LIST.some(item =>
       item.includes(clean) || clean.includes(item)
     );
     if (isSupported) {
       setCheckResult({ success: true, text: `✅ Supported! You can search and analyze this stock.` });
     } else {
       setCheckResult({ success: false, text: `❌ Currently not available in the model database. Try another.` });
+    }
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      runCheck(checkQuery);
     }
   };
 
@@ -123,8 +127,12 @@ export default function Sidebar({ activeMode, setActiveMode }) {
         <input
           type="text"
           value={checkQuery}
-          onChange={(e) => handleCheck(e.target.value)}
-          placeholder="e.g. Reliance, TCS, SBI..."
+          onChange={(e) => {
+            setCheckQuery(e.target.value);
+            if (!e.target.value.trim()) setCheckResult(null);
+          }}
+          onKeyDown={handleKeyDown}
+          placeholder="e.g. Reliance, TCS, SBI... then press Enter"
           className="search-input"
           style={{ padding: '8px 12px', fontSize: '13px' }}
         />
