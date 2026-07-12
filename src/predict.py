@@ -1,5 +1,4 @@
 import os
-import joblib
 import pandas as pd
 import numpy as np
 
@@ -67,6 +66,7 @@ def predict_stock_action(feature_row: pd.DataFrame) -> dict:
         probs = [score / sum_exp for score in exp_scores]
         pred_class = int(np.argmax(probs))
     elif os.path.exists(model_path_pkl):
+        import joblib
         model = joblib.load(model_path_pkl)
         expected_features = model.get_booster().feature_names
         feature_row_aligned = feature_row[expected_features]
