@@ -7,11 +7,35 @@ import TechnicalDetails from './components/TechnicalDetails';
 import Fundamentals from './components/Fundamentals';
 import ExplanationGuide from './components/ExplanationGuide';
 
+const LOADING_STEPS = [
+  "Analyzing technical charts & indicators...",
+  "Fetching latest news sentiment...",
+  "Calculating institutional flows (FII/DII)...",
+  "Running predictive models...",
+  "Generating AI strategic explanation..."
+];
+
 export default function App() {
   const [activeMode, setActiveMode] = useState("analysis");
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  
+  // Loader states
+  const [loadingStep, setLoadingStep] = useState(0);
+
+  React.useEffect(() => {
+    let interval;
+    if (loading) {
+      setLoadingStep(0);
+      interval = setInterval(() => {
+        setLoadingStep((prev) => (prev + 1) % LOADING_STEPS.length);
+      }, 2000);
+    } else {
+      setLoadingStep(0);
+    }
+    return () => clearInterval(interval);
+  }, [loading]);
   
   // Data states
   const [analysisData, setAnalysisData] = useState(null);
@@ -188,9 +212,14 @@ export default function App() {
                 
                 {/* Inline loading progress */}
                 {loading && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '16px', color: '#E2E8F0', fontSize: '13px', fontWeight: 500, justifyContent: 'flex-start', textAlign: 'left' }}>
-                    <div className="spinner-mini"></div>
-                    <span>Analyzing charts, news sentiment, institutional flows & fundamentals...</span>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '16px', alignItems: 'flex-start', textAlign: 'left' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#E2E8F0', fontSize: '13px', fontWeight: 500 }}>
+                      <div className="spinner-mini"></div>
+                      <span>{LOADING_STEPS[loadingStep]}</span>
+                    </div>
+                    <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontStyle: 'italic', paddingLeft: '28px' }}>
+                      Please wait a few seconds while we synthesize real-time market data...
+                    </span>
                   </div>
                 )}
               </div>
