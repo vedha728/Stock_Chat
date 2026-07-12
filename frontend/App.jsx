@@ -27,6 +27,9 @@ export default function App() {
   // Learn states
   const [learnQuery, setLearnQuery] = useState("");
   const [learnData, setLearnData] = useState(null);
+  
+  // UI states
+  const [newsExpanded, setNewsExpanded] = useState(false);
 
   const fetchAnalysis = async (searchQuery) => {
     if (!searchQuery.trim()) return;
@@ -254,8 +257,8 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* Dashboard grid columns */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+                {/* Technicals & Chart Row */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: '24px', alignItems: 'start' }}>
                   
                   {/* Left Column: Signals, Technicals, Fundamentals */}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
@@ -273,23 +276,42 @@ export default function App() {
                     <Fundamentals data={analysisData.fundamentals} />
                   </div>
 
-                  {/* Right Column: Chart, Explanation, News */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                    <ChartView 
-                      data={analysisData.historical_prices}
-                      companyName={analysisData.company_name}
-                    />
+                  {/* Right Column: Chart */}
+                  <ChartView 
+                    data={analysisData.historical_prices}
+                    companyName={analysisData.company_name}
+                  />
 
-                    <ExplanationGuide 
-                      modelAnalysis={analysisData.model_analysis}
-                      beginnerExplanation={analysisData.beginner_explanation}
-                    />
+                </div>
 
-                    {/* News List */}
-                    <div className="glass-card" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                      <h3 style={{ fontSize: '16px', fontWeight: 600, color: '#FFFFFF' }}>
-                        📰 Latest News & Sentiment Sources
-                      </h3>
+                {/* Explanation (Full width) */}
+                <ExplanationGuide 
+                  modelAnalysis={analysisData.model_analysis}
+                  beginnerExplanation={analysisData.beginner_explanation}
+                />
+
+                {/* News List (Full width & Collapsible dropdown) */}
+                <div className="glass-card" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <div 
+                    onClick={() => setNewsExpanded(!newsExpanded)} 
+                    style={{ 
+                      display: 'flex', 
+                      justifyContent: 'space-between', 
+                      alignItems: 'center', 
+                      cursor: 'pointer',
+                      userSelect: 'none'
+                    }}
+                  >
+                    <h3 style={{ fontSize: '16px', fontWeight: 600, color: '#FFFFFF', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      📰 Latest News & Sentiment Sources
+                    </h3>
+                    <span style={{ fontSize: '16px', color: '#94A3B8' }}>
+                      {newsExpanded ? '▲' : '▼'}
+                    </span>
+                  </div>
+                  
+                  {newsExpanded && (
+                    <div style={{ marginTop: '12px' }}>
                       {analysisData.news_headlines.length === 0 ? (
                         <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>No recent news articles found.</p>
                       ) : (
@@ -323,8 +345,7 @@ export default function App() {
                         </div>
                       )}
                     </div>
-                  </div>
-
+                  )}
                 </div>
               </div>
             )}
