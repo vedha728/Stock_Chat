@@ -12,23 +12,30 @@ def predict_stock_action(feature_row: pd.DataFrame) -> dict:
     are overridden to HOLD to avoid low-quality BUY/SELL calls.
     Returns: dict with Recommendation, Confidence, Breakdown, Low_Confidence flag.
     """
-    model_path = "models/xgboost_model.pkl"
+    model_path_json = "models/xgboost_model.json"
+    model_path_pkl = "models/xgboost_model.pkl"
+    class_map  = {0: "SELL", 1: "HOLD", 2: "BUY"}
 
-    if not os.path.exists(model_path):
+    if os.path.exists(model_path_json):
+        import xgboost as xgb
+        bst = xgb.Booster()
+        bst.load_model(model_path_json)
+        expected_features = bst.feature_names
+        feature_row_aligned = feature_row[expected_features]
+        dtrain = xgb.DMatrix(feature_row_aligned)
+        probs = bst.predict(dtrain)[0]
+        pred_class = int(np.argmax(probs))
+    elif os.path.exists(model_path_pkl):
+        model = joblib.load(model_path_pkl)
+        expected_features = model.get_booster().feature_names
+        feature_row_aligned = feature_row[expected_features]
+        probs      = model.predict_proba(feature_row_aligned)[0]
+        pred_class = model.predict(feature_row_aligned)[0]
+    else:
         raise FileNotFoundError(
-            f"Trained model not found at '{model_path}'. "
+            f"Trained model not found at '{model_path_json}' or '{model_path_pkl}'. "
             f"Please run: python src/train_model.py"
         )
-
-    model = joblib.load(model_path)
-
-    # Dynamically align features to match the model's training features
-    expected_features = model.get_booster().feature_names
-    feature_row_aligned = feature_row[expected_features]
-
-    probs      = model.predict_proba(feature_row_aligned)[0]   # [sell_prob, hold_prob, buy_prob]
-    pred_class = model.predict(feature_row_aligned)[0]          # 0=SELL, 1=HOLD, 2=BUY
-    class_map  = {0: "SELL", 1: "HOLD", 2: "BUY"}
 
     prediction = class_map[pred_class]
     confidence = float(probs[pred_class])

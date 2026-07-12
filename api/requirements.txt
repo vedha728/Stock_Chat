@@ -1,7 +1,6 @@
 pandas
 numpy
 yfinance
-xgboost
-scikit-learn
+xgboost==1.7.6
 google-genai
 requests
