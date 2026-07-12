@@ -298,9 +298,7 @@ export default function App() {
                   border: '1px solid #242E42',
                   borderLeft: '4px solid var(--primary-emerald)',
                   borderRadius: '12px',
-                  maxWidth: '750px',
-                  width: '100%',
-                  margin: '0'
+                  width: '100%'
                 }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', textAlign: 'left' }}>
                     <span style={{ fontSize: '11px', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 600 }}>Target Stock</span>
@@ -320,9 +318,7 @@ export default function App() {
                 <div className="glass-card" style={{ 
                   borderLeft: '4px solid', 
                   borderColor: analysisData.ml_result.Recommendation === 'BUY' ? 'var(--primary-emerald)' : analysisData.ml_result.Recommendation === 'SELL' ? 'var(--danger-red)' : 'var(--warning-amber)',
-                  maxWidth: '750px',
-                  width: '100%',
-                  margin: '0'
+                  width: '100%'
                 }}>
                   <h2 style={{ fontSize: '20px', fontWeight: 700, marginBottom: '8px', textAlign: 'left' }}>
                     Verdict: {analysisData.ml_result.Recommendation} ({(analysisData.ml_result.Confidence * 100).toFixed(1)}% Confidence)
@@ -331,7 +327,9 @@ export default function App() {
                     const buyPct = analysisData.ml_result.Breakdown.BUY;
                     const holdPct = analysisData.ml_result.Breakdown.HOLD;
                     const sellPct = analysisData.ml_result.Breakdown.SELL;
+                    
                     const isBuyHighestButHold = analysisData.ml_result.Recommendation === 'HOLD' && buyPct > holdPct && buyPct > sellPct;
+                    const isSellHighestButHold = analysisData.ml_result.Recommendation === 'HOLD' && sellPct > holdPct && sellPct > buyPct;
 
                     let bg, border, textColor, text;
 
@@ -352,6 +350,15 @@ export default function App() {
                       text = (
                         <span>
                           <strong>⚠️ Note:</strong> Although BUY has the highest probability (<strong>{(buyPct * 100).toFixed(1)}%</strong>), it did not cross the <strong>55% confidence threshold</strong> required to issue a BUY alert, so the verdict defaults to <strong>HOLD</strong>. Even though the buying signal is relatively higher, we do not assure a buy entry yet. We recommend keeping this stock on your watchlist to monitor if momentum builds up.
+                        </span>
+                      );
+                    } else if (isSellHighestButHold) {
+                      bg = 'rgba(245, 158, 11, 0.09)';
+                      border = '1px solid rgba(245, 158, 11, 0.35)';
+                      textColor = '#FDE68A';
+                      text = (
+                        <span>
+                          <strong>⚠️ Note:</strong> Although SELL has the highest probability (<strong>{(sellPct * 100).toFixed(1)}%</strong>), it did not cross the <strong>55% confidence threshold</strong> required to issue a SELL alert, so the verdict defaults to <strong>HOLD</strong>. Even though the selling signal is relatively higher, we do not suggest selling yet. We recommend keeping this stock on your watchlist to monitor from now on.
                         </span>
                       );
                     } else {
