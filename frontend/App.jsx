@@ -298,9 +298,9 @@ export default function App() {
                   border: '1px solid #242E42',
                   borderLeft: '4px solid var(--primary-emerald)',
                   borderRadius: '12px',
-                  maxWidth: '650px',
+                  maxWidth: '750px',
                   width: '100%',
-                  margin: '0 auto'
+                  margin: '0'
                 }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', textAlign: 'left' }}>
                     <span style={{ fontSize: '11px', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 600 }}>Target Stock</span>
@@ -319,7 +319,10 @@ export default function App() {
                 {/* Verdict Card */}
                 <div className="glass-card" style={{ 
                   borderLeft: '4px solid', 
-                  borderColor: analysisData.ml_result.Recommendation === 'BUY' ? 'var(--primary-emerald)' : analysisData.ml_result.Recommendation === 'SELL' ? 'var(--danger-red)' : 'var(--warning-amber)'
+                  borderColor: analysisData.ml_result.Recommendation === 'BUY' ? 'var(--primary-emerald)' : analysisData.ml_result.Recommendation === 'SELL' ? 'var(--danger-red)' : 'var(--warning-amber)',
+                  maxWidth: '750px',
+                  width: '100%',
+                  margin: '0'
                 }}>
                   <h2 style={{ fontSize: '20px', fontWeight: 700, marginBottom: '8px', textAlign: 'left' }}>
                     Verdict: {analysisData.ml_result.Recommendation} ({(analysisData.ml_result.Confidence * 100).toFixed(1)}% Confidence)
@@ -382,7 +385,7 @@ export default function App() {
                         <span style={{ fontWeight: 600, color: '#E2E8F0', display: 'flex', alignItems: 'center', gap: '6px' }}>📈 BUY Chance</span>
                         <span style={{ fontSize: '15px', fontWeight: 700, color: 'var(--primary-mint)' }}>{(analysisData.ml_result.Breakdown.BUY * 100).toFixed(1)}%</span>
                       </div>
-                      <div style={{ width: '100%', height: '6px', backgroundColor: '#1E293B', borderRadius: '3px', overflow: 'hidden' }}>
+                      <div style={{ width: '100%', height: '10px', backgroundColor: '#1E293B', borderRadius: '5px', overflow: 'hidden' }}>
                         <div style={{ width: `${analysisData.ml_result.Breakdown.BUY * 100}%`, height: '100%', backgroundColor: 'var(--primary-emerald)' }}></div>
                       </div>
                     </div>
@@ -391,7 +394,7 @@ export default function App() {
                         <span style={{ fontWeight: 600, color: '#E2E8F0', display: 'flex', alignItems: 'center', gap: '6px' }}>⚖️ HOLD Chance</span>
                         <span style={{ fontSize: '15px', fontWeight: 700, color: 'var(--warning-amber)' }}>{(analysisData.ml_result.Breakdown.HOLD * 100).toFixed(1)}%</span>
                       </div>
-                      <div style={{ width: '100%', height: '6px', backgroundColor: '#1E293B', borderRadius: '3px', overflow: 'hidden' }}>
+                      <div style={{ width: '100%', height: '10px', backgroundColor: '#1E293B', borderRadius: '5px', overflow: 'hidden' }}>
                         <div style={{ width: `${analysisData.ml_result.Breakdown.HOLD * 100}%`, height: '100%', backgroundColor: 'var(--warning-amber)' }}></div>
                       </div>
                     </div>
@@ -400,7 +403,7 @@ export default function App() {
                         <span style={{ fontWeight: 600, color: '#E2E8F0', display: 'flex', alignItems: 'center', gap: '6px' }}>📉 SELL Chance</span>
                         <span style={{ fontSize: '15px', fontWeight: 700, color: 'var(--danger-red)' }}>{(analysisData.ml_result.Breakdown.SELL * 100).toFixed(1)}%</span>
                       </div>
-                      <div style={{ width: '100%', height: '6px', backgroundColor: '#1E293B', borderRadius: '3px', overflow: 'hidden' }}>
+                      <div style={{ width: '100%', height: '10px', backgroundColor: '#1E293B', borderRadius: '5px', overflow: 'hidden' }}>
                         <div style={{ width: `${analysisData.ml_result.Breakdown.SELL * 100}%`, height: '100%', backgroundColor: 'var(--danger-red)' }}></div>
                       </div>
                     </div>
