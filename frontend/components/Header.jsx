@@ -28,7 +28,7 @@ export default function Header() {
           WebkitBackgroundClip: 'text',
           WebkitTextFillColor: 'transparent'
         }}>
-          Multi-Signal AI Stock Advisory
+          Multi-Signal Stock Advisory
         </span>
       </h1>
       <p style={{
@@ -38,7 +38,7 @@ export default function Header() {
         fontWeight: 400, 
         letterSpacing: '0.2px'
       }}>
-        Leveraging <span style={{ color: '#6EE7B7', fontWeight: 500 }}>Technical Charts</span>, <span style={{ color: '#6EE7B7', fontWeight: 500 }}>News Sentiment</span>, <span style={{ color: '#6EE7B7', fontWeight: 500 }}>Institutional Flows</span>, and <span style={{ color: '#6EE7B7', fontWeight: 500 }}>Fundamental Ratios</span>
+        Leveraging <span style={{ color: '#6EE7B7', fontWeight: 500 }}>Technical Charts</span>, <span style={{ color: '#6EE7B7', fontWeight: 500 }}>News Sentiment</span>, <span style={{ color: '#6EE7B7', fontWeight: 500 }}>Institutional Flows</span>, and <span style={{ color: '#6EE7B7', fontWeight: 500 }}>Fundamentals</span>
       </p>
     </div>
   );
