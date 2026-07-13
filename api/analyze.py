@@ -264,7 +264,7 @@ class handler(BaseHTTPRequestHandler):
                     "RSI": clean_nan(latest_price_row.get("RSI", 50.0)),
                     "MA50": clean_nan(latest_price_row.get("MA50", current_price)),
                     "MA200": clean_nan(latest_price_row.get("MA200", current_price)),
-                    "MACD": clean_nan(latest_price_row.get("MACD", 0.0)),
+                    "MACD": clean_nan(latest_price_row.get("MACD_Hist", 0.0)),
                     "Price_Above_MA50": int(latest_price_row.get("Price_Above_MA50", 0)),
                     "Price_Above_MA200": int(latest_price_row.get("Price_Above_MA200", 0))
                 },
