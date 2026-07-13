@@ -4,6 +4,8 @@ import json
 import os
 import sys
 import math
+import concurrent.futures
+import time
 
 # Link to src directory
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -107,56 +109,108 @@ class handler(BaseHTTPRequestHandler):
 
             # Format historical closing price data (90-day tail) for React charts
             historical_prices = []
-            tail_df = price_df.tail(90)
-            for dt, row in tail_df.iterrows():
-                dt_str = dt.strftime("%Y-%m-%d") if hasattr(dt, 'strftime') else str(dt)
+            tail_df = price_indicators_df.tail(90)
+            for _, row in tail_df.iterrows():
+                row_date = row["Date"]
+                dt_str = row_date.strftime("%Y-%m-%d") if hasattr(row_date, 'strftime') else str(row_date)
                 historical_prices.append({
                     "date": dt_str,
                     "close": clean_nan(float(row["Close"]))
                 })
 
-            # 3. Fetch News Sentiment (Non-critical fallback)
-            try:
-                headlines = fetch_news_headlines(selected_ticker, selected_company)
-                if headlines:
-                    titles_list = [h["title"] for h in headlines]
-                    sent_score, pos_count, neg_count = analyze_news_sentiment(titles_list)
-                    sentiment_summary = (sent_score, pos_count, neg_count, 1)
-                else:
+            # Execute other fetches concurrently to optimize performance
+            with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
+                futures = {
+                    "news": executor.submit(fetch_news_headlines, selected_ticker, selected_company),
+                    "fii": executor.submit(fetch_latest_fii_dii),
+                    "fundamentals": executor.submit(fetch_fundamentals, selected_ticker),
+                    "macro": executor.submit(get_latest_macro_returns)
+                }
+                
+                # Wait for all fetches with a unified 4.0s wall-clock limit
+                done, not_done = concurrent.futures.wait(futures.values(), timeout=4.0)
+                for fut in not_done:
+                    fut.cancel()
+
+                # 3. Resolve News & Sentiment
+                try:
+                    headlines = futures["news"].result() if futures["news"] in done else None
+                    if headlines:
+                        titles_list = [h["title"] for h in headlines]
+                        sent_score, pos_count, neg_count = analyze_news_sentiment(titles_list)
+                        sentiment_summary = (sent_score, pos_count, neg_count, 1)
+                    else:
+                        sentiment_summary = (0.0, 0, 0, 0)
+                        sent_score, pos_count, neg_count = 0.0, 0, 0
+                except Exception:
                     sentiment_summary = (0.0, 0, 0, 0)
                     sent_score, pos_count, neg_count = 0.0, 0, 0
-            except Exception:
-                sentiment_summary = (0.0, 0, 0, 0)
-                sent_score, pos_count, neg_count = 0.0, 0, 0
-                headlines = []
+                    headlines = []
 
-            # 4. Fetch Institutional Flow (Non-critical fallback)
-            try:
-                fii_dii_df = fetch_latest_fii_dii()
-                fii_net_list = fii_dii_df['FII_Net'].tolist()
-                dii_net_list = fii_dii_df['DII_Net'].tolist()
-                fii_dii_summary = analyze_institutional_signals(fii_net_list, dii_net_list)
-            except Exception:
-                fii_dii_summary = {
-                    "FII_10d_Net": 0.0, "DII_10d_Net": 0.0,
-                    "FII_Trend": 0, "DII_Trend": 0, "Divergence_Flag": 0
-                }
+                # 4. Resolve Institutional Flow (FII/DII)
+                try:
+                    fii_dii_df = futures["fii"].result() if futures["fii"] in done else None
+                    if fii_dii_df is not None:
+                        fii_net_list = fii_dii_df['FII_Net'].tolist()
+                        dii_net_list = fii_dii_df['DII_Net'].tolist()
+                        fii_dii_summary = analyze_institutional_signals(fii_net_list, dii_net_list)
+                    else:
+                        raise ValueError()
+                except Exception:
+                    fii_dii_summary = {
+                        "FII_10d_Net": 0.0, "DII_10d_Net": 0.0,
+                        "FII_Trend": 0, "DII_Trend": 0, "Divergence_Flag": 0
+                    }
 
-            # 5. Fetch Fundamentals (Non-critical fallback)
-            try:
-                fundamentals = fetch_fundamentals(selected_ticker)
-            except Exception:
-                fundamentals = {}
+                # 5. Resolve Fundamentals
+                try:
+                    fundamentals = futures["fundamentals"].result() if futures["fundamentals"] in done else {}
+                except Exception:
+                    fundamentals = {}
 
-            # 6. Fetch Macro Returns (Non-critical fallback)
-            try:
-                macro_returns = get_latest_macro_returns()
-            except Exception:
-                macro_returns = (0.0, 0.0, 0.0)
+                # 6. Resolve Macro Returns
+                try:
+                    macro_returns = futures["macro"].result() if futures["macro"] in done else (0.0, 0.0, 0.0)
+                except Exception:
+                    macro_returns = (0.0, 0.0, 0.0)
 
-            # 7. Run ML Predictor (Critical Path)
+            # 7. Run ML Predictor for today (the latest row)
             feature_row = prepare_inference_row(price_indicators_df, fii_dii_summary, sentiment_summary, macro_returns)
             ml_result = predict_stock_action(feature_row)
+
+            # 7.2. Compute 10-Day Signal Timeline
+            timeline = []
+            if len(price_indicators_df) >= 15:
+                for i in range(10):
+                    target_idx = len(price_indicators_df) - 10 + i
+                    df_slice = price_indicators_df.iloc[:target_idx + 1]
+                    
+                    # Sentiment and Macro logic: Use neutral defaults for past, live for today
+                    if i == 9:
+                        loop_sentiment = sentiment_summary
+                        loop_macro = macro_returns
+                        loop_fii_dii = fii_dii_summary
+                    else:
+                        loop_sentiment = (0.0, 0, 0, 0)
+                        loop_macro = (0.0, 0.0, 0.0)
+                        loop_fii_dii = {
+                            "FII_10d_Net": 0.0, "DII_10d_Net": 0.0,
+                            "FII_Trend": 0, "DII_Trend": 0, "Divergence_Flag": 0
+                        }
+                    
+                    loop_feature_row = prepare_inference_row(df_slice, loop_fii_dii, loop_sentiment, loop_macro)
+                    loop_pred = predict_stock_action(loop_feature_row)
+                    
+                    row_date = df_slice.iloc[-1]["Date"]
+                    dt_str = row_date.strftime("%Y-%m-%d") if hasattr(row_date, 'strftime') else str(row_date)
+                    
+                    timeline.append({
+                        "date": dt_str,
+                        "buy": clean_nan(float(loop_pred.get("Breakdown", {}).get("BUY", 0.0) * 100)),
+                        "hold": clean_nan(float(loop_pred.get("Breakdown", {}).get("HOLD", 0.0) * 100)),
+                        "sell": clean_nan(float(loop_pred.get("Breakdown", {}).get("SELL", 0.0) * 100)),
+                        "is_live": (i == 9)
+                    })
 
             # 8. Run AI explanation / Reconciliations (Non-critical fallback)
             tech_summary_dict = {
@@ -230,6 +284,7 @@ class handler(BaseHTTPRequestHandler):
                 "model_analysis": model_analysis,
                 "beginner_explanation": beginner_explanation,
                 "historical_prices": historical_prices,
+                "timeline": timeline,
                 "news_headlines": [
                     {
                         "title": h.get("title", ""),

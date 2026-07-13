@@ -6,6 +6,7 @@ import SignalsSummary from './components/SignalsSummary';
 import TechnicalDetails from './components/TechnicalDetails';
 import Fundamentals from './components/Fundamentals';
 import ExplanationGuide from './components/ExplanationGuide';
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
 const LOADING_STEPS = [
   "Analyzing technical charts & indicators...",
@@ -39,6 +40,106 @@ const BACKTEST_LOADING_STEPS = [
   "Calculating benchmark buy & hold performance...",
   "Finalizing performance report metrics..."
 ];
+
+const renderCustomLiveDot = (props) => {
+  const { cx, cy, payload, stroke } = props;
+  if (payload.is_live) {
+    return (
+      <g>
+        {/* Pulsing Outer Halo */}
+        <circle 
+          cx={cx} 
+          cy={cy} 
+          r={9} 
+          fill={stroke} 
+          opacity={0.4} 
+          className="live-pulse-halo"
+        />
+        {/* Solid Center Dot */}
+        <circle 
+          cx={cx} 
+          cy={cy} 
+          r={5} 
+          fill={stroke} 
+          stroke="#FFFFFF" 
+          strokeWidth={1.5}
+        />
+      </g>
+    );
+  }
+  return null;
+};
+
+function SignalTimelineChart({ timelineData }) {
+  return (
+    <div className="glass-card" style={{ padding: '20px', width: '100%', marginBottom: '24px' }}>
+      <h3 style={{ fontSize: '15px', fontWeight: 600, color: '#FFFFFF', marginBottom: '16px', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '8px' }}>
+        📈 10-Day Signal Trend Tracker
+      </h3>
+      <div style={{ width: '100%', height: 260 }}>
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart data={timelineData} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
+            <XAxis 
+              dataKey="date" 
+              stroke="#64748B" 
+              fontSize={10}
+              tickLine={false}
+              axisLine={false}
+              dy={10}
+            />
+            <YAxis 
+              stroke="#64748B" 
+              fontSize={10}
+              tickLine={false}
+              axisLine={false}
+              domain={[0, 100]}
+              tickFormatter={(val) => `${val}%`}
+            />
+            <Tooltip 
+              contentStyle={{
+                background: 'rgba(15, 23, 42, 0.95)',
+                border: '1px solid #334155',
+                borderRadius: '8px',
+                color: '#F8FAFC',
+                fontSize: '11px'
+              }}
+              formatter={(value, name, props) => {
+                const isLive = props.payload.is_live;
+                const displayName = isLive ? `${name} (LIVE)` : name;
+                return [`${parseFloat(value).toFixed(1)}%`, displayName];
+              }}
+            />
+            <Line 
+              type="monotone" 
+              dataKey="buy" 
+              name="BUY Chance" 
+              stroke="#10B981" 
+              strokeWidth={3} 
+              dot={renderCustomLiveDot}
+              activeDot={{ r: 6 }}
+            />
+            <Line 
+              type="monotone" 
+              dataKey="hold" 
+              name="HOLD Chance" 
+              stroke="#F59E0B" 
+              strokeWidth={2} 
+              dot={renderCustomLiveDot}
+            />
+            <Line 
+              type="monotone" 
+              dataKey="sell" 
+              name="SELL Chance" 
+              stroke="#EF4444" 
+              strokeWidth={2} 
+              dot={renderCustomLiveDot}
+            />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  );
+}
 
 export default function App() {
   const [activeMode, setActiveMode] = useState("analysis");
@@ -514,6 +615,8 @@ export default function App() {
                         </div>
                       </div>
                     </div>
+
+                    {analysisData.timeline && <SignalTimelineChart timelineData={analysisData.timeline} />}
 
                     {/* Row 1: Signals Summary & Chart */}
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: '24px', alignItems: 'start' }}>
