@@ -38,7 +38,7 @@ export default function Header() {
         fontWeight: 400, 
         letterSpacing: '0.2px'
       }}>
-        Leveraging <span style={{ color: '#6EE7B7', fontWeight: 500 }}>Technical Charts</span>, <span style={{ color: '#6EE7B7', fontWeight: 500 }}>News Sentiment</span>, <span style={{ color: '#6EE7B7', fontWeight: 500 }}>Institutional Flows</span>, and <span style={{ color: '#6EE7B7', fontWeight: 500 }}>Fundamentals</span>
+        Leveraging <span style={{ color: '#6EE7B7', fontWeight: 500 }}>Technical Charts</span>, <span style={{ color: '#6EE7B7', fontWeight: 500 }}>News Sentiment</span>, <span style={{ color: '#6EE7B7', fontWeight: 500 }}>Global Macro Indicators</span>, and <span style={{ color: '#6EE7B7', fontWeight: 500 }}>Fundamentals</span>
       </p>
       <div style={{
         marginTop: '16px',
