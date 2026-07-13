@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Multi-Signal Stock Advisory System — Project Report</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Times+New+Roman&display=swap');
+
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  body {
+    font-family: 'Times New Roman', Times, serif;
+    font-size: 13pt;
+    line-height: 1.8;
+    color: #000;
+    background: #fff;
+  }
+
+  /* Page setup for screen and print */
+  .page {
+    position: relative;
+    width: 21cm;
+    height: 29.7cm;
+    margin: 20px auto;
+    padding: 2.5cm 2.5cm 2.5cm 3cm;
+    background: #fff;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    box-sizing: border-box;
+    page-break-after: always;
+    page-break-inside: avoid;
+    overflow: hidden;
+  }
+
+  .page:last-child {
+    page-break-after: auto;
+  }
+
+  @media print {
+    body {
+      background: #fff;
+      color: #000;
+    }
+    .page {
+      margin: 0;
+      box-shadow: none;
+      width: 21cm;
+      height: 29.7cm;
+      page-break-after: always;
+      page-break-inside: avoid;
+    }
+    @page {
+      size: A4;
+      margin: 0;
+    }
+  }
+
+  /* Typography */
+  h1 {
+    font-size: 22pt;
+    font-weight: bold;
+    text-align: center;
+    margin-bottom: 20px;
+    text-transform: uppercase;
+  }
+
+  h2 {
+    font-size: 16pt;
+    font-weight: bold;
+    margin-top: 30px;
+    margin-bottom: 12px;
+  }
+
+  h3 {
+    font-size: 14pt;
+    font-weight: bold;
+    margin-top: 20px;
+    margin-bottom: 8px;
+  }
+
+  p {
+    text-align: justify;
+    margin-bottom: 12px;
+    text-indent: 40px;
+  }
+
+  p.no-indent {
+    text-indent: 0;
+  }
+
+  ul, ol {
+    margin-left: 40px;
+    margin-bottom: 12px;
+  }
+
+  li {
+    margin-bottom: 6px;
+  }
+
+  /* Title page */
+  .title-page {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    min-height: 90vh;
+  }
+
+  .title-page .placeholder-box {
+    border: 2px dashed #999;
+    padding: 40px 60px;
+    margin: 20px;
+    color: #666;
+    font-style: italic;
+    font-size: 14pt;
+    border-radius: 8px;
+    background: #f9f9f9;
+  }
+
+  /* Declaration page */
+  .declaration-page {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    min-height: 90vh;
+  }
+
+  /* Abstract */
+  .abstract-content {
+    margin-top: 20px;
+  }
+
+  /* Table of Contents */
+  .toc-entry {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 6px 0;
+    border-bottom: 1px dotted #ccc;
+    font-size: 13pt;
+    text-indent: 0;
+  }
+
+  .toc-entry.chapter {
+    font-weight: bold;
+    font-size: 13.5pt;
+  }
+
+  .toc-entry.sub {
+    padding-left: 30px;
+    font-weight: normal;
+  }
+
+  .toc-chapter-num {
+    min-width: 60px;
+  }
+
+  .toc-dots {
+    flex: 1;
+    border-bottom: 1px dotted #999;
+    margin: 0 8px;
+    height: 1px;
+  }
+
+  /* Tables */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+    font-size: 12pt;
+  }
+
+  table th, table td {
+    border: 1px solid #333;
+    padding: 8px 12px;
+    text-align: left;
+    vertical-align: top;
+  }
+
+  table th {
+    background-color: #e8e8e8;
+    font-weight: bold;
+  }
+
+  /* Architecture diagram */
+  .arch-diagram {
+    margin: 5px auto;
+    padding: 10px;
+    max-width: 100%;
+  }
+
+  .arch-box {
+    border: 1.5px solid #333;
+    padding: 6px 12px;
+    text-align: center;
+    font-weight: bold;
+    font-size: 10pt;
+    background: #f0f0f0;
+    margin: 2px;
+    border-radius: 4px;
+  }
+
+  .arch-box.primary {
+    background: #d4edda;
+    border-color: #155724;
+  }
+
+  .arch-box.secondary {
+    background: #cce5ff;
+    border-color: #004085;
+  }
+
+  .arch-box.accent {
+    background: #fff3cd;
+    border-color: #856404;
+  }
+
+  .arch-arrow {
+    text-align: center;
+    font-size: 13pt;
+    font-weight: bold;
+    color: #333;
+    margin: 2px 0;
+    line-height: 1.2;
+  }
+
+  .arch-row {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin: 3px 0;
+  }
+
+  .page-footer {
+    position: absolute;
+    bottom: 25px;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-size: 12pt;
+    font-family: 'Times New Roman', Times, serif;
+  }
+
+  /* Screenshot placeholder */
+  .screenshot-placeholder {
+    border: 2px dashed #aaa;
+    padding: 80px 40px;
+    text-align: center;
+    color: #888;
+    font-style: italic;
+    font-size: 13pt;
+    margin: 20px 0;
+    background: #fafafa;
+    border-radius: 6px;
+    min-height: 250px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Reference entry */
+  .reference-entry {
+    text-indent: -40px;
+    padding-left: 40px;
+    margin-bottom: 18px;
+    text-align: left;
+  }
+
+  .reference-entry a {
+    color: #0066cc;
+    word-break: break-all;
+  }
+
+  /* Page number footer */
+
+
+  /* Horizontal rule */
+  hr {
+    border: none;
+    border-top: 1px solid #ccc;
+    margin: 20px 0;
+  }
+
+  /* Comparison section */
+  .comparison-point {
+    margin-bottom: 6px;
+  }
+
+  .our-edge {
+    font-weight: bold;
+    margin-top: 8px;
+    color: #155724;
+  }
+</style>
+</head>
+<body>
+
+<!-- ==================== PAGE: TITLE (BLANK) ==================== -->
+<div class="page no-page-number">
+  <div class="title-page">
+    <div class="placeholder-box">
+      [ Insert College Logo Here ]
+    </div>
+    <br>
+    <h1 style="font-size: 24pt; margin-top: 20px;">MULTI-SIGNAL STOCK ADVISORY SYSTEM</h1>
+    <p class="no-indent" style="font-size: 14pt; margin-top: 10px;">A Project Report</p>
+    <br><br>
+    <div class="placeholder-box">
+      [ Insert Your Name, Register Number, Department,<br>
+      Faculty Guide Name, College Name, Year ]
+    </div>
+  </div>
+</div>
+
+<!-- ==================== PAGE: DECLARATION (BLANK) ==================== -->
+<div class="page no-page-number">
+  <div class="declaration-page">
+    <div class="placeholder-box" style="min-height: 400px; min-width: 500px;">
+      [ Insert Declaration Content Here ]
+    </div>
+  </div>
+</div>
+
+<!-- ==================== PAGE: ABSTRACT ==================== -->
+<div class="page no-page-number">
+  <h1>ABSTRACT</h1>
+  <div class="abstract-content">
+    <p>
+      The Indian retail investment landscape has seen rapid growth in recent years, with millions of new investors entering the stock market through digital platforms. However, most retail investors lack the technical expertise to interpret complex chart patterns, track global macroeconomic shifts, or analyze news sentiment — all of which significantly influence stock price movements. Existing platforms such as TradingView and Tickertape provide isolated tools for either technical charting or fundamental screening, but none offer an integrated, machine-learning-driven advisory system that fuses multiple signal domains into a single actionable recommendation.
+    </p>
+    <p>
+      This project presents a <strong>Multi-Signal Stock Advisory System</strong> that addresses this gap by combining three distinct analytical signal domains — <em>Technical Chart Indicators</em>, <em>News Sentiment Analysis</em>, and <em>Global Macro Indicators</em> — into a unified XGBoost-based classification model. The system fetches real-time market data from Yahoo Finance, processes live news headlines through Google Gemini LLM for sentiment scoring, and incorporates S&P 500, Crude Oil, and USD/INR exchange rate returns as macroeconomic context. A 19-feature vector is constructed and evaluated against a pre-trained XGBoost model to produce a BUY, HOLD, or SELL verdict with a confidence percentage. The system also features a 10-day historical signal trend tracker, fundamental ratio displays, and a strategy backtesting module. The entire application is deployed as a serverless web application on Vercel, with a React-based frontend and Python-based API backend, making it freely accessible to any retail investor.
+    </p>
+    <p>
+      <strong>Keywords:</strong> Stock Market Prediction, XGBoost, Sentiment Analysis, Technical Indicators, Multi-Signal Fusion, Indian Stock Market, NSE, Machine Learning, Serverless Deployment.
+    </p>
+  </div>
+</div>
+
+<!-- ==================== PAGE: TABLE OF CONTENTS ==================== -->
+<div class="page no-page-number">
+  <h1>TABLE OF CONTENTS</h1>
+  <br>
+  <table style="width: 100%; border-collapse: collapse; font-size: 13pt;">
+    <thead>
+      <tr>
+        <th style="border: 1.5px solid #000; padding: 10px 14px; text-align: left; width: 15%;">Chapter No.</th>
+        <th style="border: 1.5px solid #000; padding: 10px 14px; text-align: left; width: 70%;">Title</th>
+        <th style="border: 1.5px solid #000; padding: 10px 14px; text-align: center; width: 15%;">Page No.</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td style="border: 1.5px solid #000; padding: 8px 14px; font-weight: bold;">1</td>
+        <td style="border: 1.5px solid #000; padding: 8px 14px; font-weight: bold;">Introduction</td>
+        <td style="border: 1.5px solid #000; padding: 8px 14px; text-align: center; font-weight: bold;">1</td>
+      </tr>
+      <tr>
+        <td style="border: 1.5px solid #000; padding: 6px 14px;"></td>
+        <td style="border: 1.5px solid #000; padding: 6px 14px; padding-left: 30px;">1.1 &nbsp; Problem Statement</td>
+        <td style="border: 1.5px solid #000; padding: 6px 14px; text-align: center;">1</td>
+      </tr>
+      <tr>
+        <td style="border: 1.5px solid #000; padding: 6px 14px;"></td>
+        <td style="border: 1.5px solid #000; padding: 6px 14px; padding-left: 30px;">1.2 &nbsp; Objective</td>
+        <td style="border: 1.5px solid #000; padding: 6px 14px; text-align: center;">2</td>
+      </tr>
+      <tr>
+        <td style="border: 1.5px solid #000; padding: 6px 14px;"></td>
+        <td style="border: 1.5px solid #000; padding: 6px 14px; padding-left: 30px;">1.3 &nbsp; Scope</td>
+        <td style="border: 1.5px solid #000; padding: 6px 14px; text-align: center;">3</td>
+      </tr>
+      <tr>
+        <td style="border: 1.5px solid #000; padding: 8px 14px; font-weight: bold;">2</td>
+        <td style="border: 1.5px solid #000; padding: 8px 14px; font-weight: bold;">System Architecture</td>
+        <td style="border: 1.5px solid #000; padding: 8px 14px; text-align: center; font-weight: bold;">4</td>
+      </tr>
+      <tr>
+        <td style="border: 1.5px solid #000; padding: 6px 14px;"></td>
+        <td style="border: 1.5px solid #000; padding: 6px 14px; padding-left: 30px;">2.1 &nbsp; High-Level Architecture Diagram</td>
+        <td style="border: 1.5px solid #000; padding: 6px 14px; text-align: center;">4</td>
+      </tr>
+      <tr>
+        <td style="border: 1.5px solid #000; padding: 6px 14px;"></td>
+        <td style="border: 1.5px solid #000; padding: 6px 14px; padding-left: 30px;">2.2 &nbsp; Technology Stack</td>
+        <td style="border: 1.5px solid #000; padding: 6px 14px; text-align: center;">5</td>
+      </tr>
+      <tr>
+        <td style="border: 1.5px solid #000; padding: 6px 14px;"></td>
+        <td style="border: 1.5px solid #000; padding: 6px 14px; padding-left: 30px;">2.3 &nbsp; Data Flow Workflow</td>
+        <td style="border: 1.5px solid #000; padding: 6px 14px; text-align: center;">5</td>
+      </tr>
+      <tr>
+        <td style="border: 1.5px solid #000; padding: 8px 14px; font-weight: bold;">3</td>
+        <td style="border: 1.5px solid #000; padding: 8px 14px; font-weight: bold;">Feature Engineering &amp; ML Model</td>
+        <td style="border: 1.5px solid #000; padding: 8px 14px; text-align: center; font-weight: bold;">6</td>
+      </tr>
+      <tr>
+        <td style="border: 1.5px solid #000; padding: 6px 14px;"></td>
+        <td style="border: 1.5px solid #000; padding: 6px 14px; padding-left: 30px;">3.1 &nbsp; The 19-Feature Vector</td>
+        <td style="border: 1.5px solid #000; padding: 6px 14px; text-align: center;">6</td>
+      </tr>
+      <tr>
+        <td style="border: 1.5px solid #000; padding: 6px 14px;"></td>
+        <td style="border: 1.5px solid #000; padding: 6px 14px; padding-left: 30px;">3.2 &nbsp; XGBoost Classification</td>
+        <td style="border: 1.5px solid #000; padding: 6px 14px; text-align: center;">7</td>
+      </tr>
+      <tr>
+        <td style="border: 1.5px solid #000; padding: 6px 14px;"></td>
+        <td style="border: 1.5px solid #000; padding: 6px 14px; padding-left: 30px;">3.3 &nbsp; 10-Day Signal Trend Tracker</td>
+        <td style="border: 1.5px solid #000; padding: 6px 14px; text-align: center;">7</td>
+      </tr>
+      <tr>
+        <td style="border: 1.5px solid #000; padding: 8px 14px; font-weight: bold;">4</td>
+        <td style="border: 1.5px solid #000; padding: 8px 14px; font-weight: bold;">Key Features &amp; Screenshots</td>
+        <td style="border: 1.5px solid #000; padding: 8px 14px; text-align: center; font-weight: bold;">8</td>
+      </tr>
+      <tr>
+        <td style="border: 1.5px solid #000; padding: 8px 14px; font-weight: bold;">5</td>
+        <td style="border: 1.5px solid #000; padding: 8px 14px; font-weight: bold;">Merits and Demerits</td>
+        <td style="border: 1.5px solid #000; padding: 8px 14px; text-align: center; font-weight: bold;">10</td>
+      </tr>
+      <tr>
+        <td style="border: 1.5px solid #000; padding: 6px 14px;"></td>
+        <td style="border: 1.5px solid #000; padding: 6px 14px; padding-left: 30px;">5.1 &nbsp; Merits</td>
+        <td style="border: 1.5px solid #000; padding: 6px 14px; text-align: center;">10</td>
+      </tr>
+      <tr>
+        <td style="border: 1.5px solid #000; padding: 6px 14px;"></td>
+        <td style="border: 1.5px solid #000; padding: 6px 14px; padding-left: 30px;">5.2 &nbsp; Demerits</td>
+        <td style="border: 1.5px solid #000; padding: 6px 14px; text-align: center;">11</td>
+      </tr>
+      <tr>
+        <td style="border: 1.5px solid #000; padding: 8px 14px; font-weight: bold;">6</td>
+        <td style="border: 1.5px solid #000; padding: 8px 14px; font-weight: bold;">Comparison with Existing Work</td>
+        <td style="border: 1.5px solid #000; padding: 8px 14px; text-align: center; font-weight: bold;">12</td>
+      </tr>
+      <tr>
+        <td style="border: 1.5px solid #000; padding: 6px 14px;"></td>
+        <td style="border: 1.5px solid #000; padding: 6px 14px; padding-left: 30px;">6.1 &nbsp; TradingView</td>
+        <td style="border: 1.5px solid #000; padding: 6px 14px; text-align: center;">12</td>
+      </tr>
+      <tr>
+        <td style="border: 1.5px solid #000; padding: 6px 14px;"></td>
+        <td style="border: 1.5px solid #000; padding: 6px 14px; padding-left: 30px;">6.2 &nbsp; Tickertape</td>
+        <td style="border: 1.5px solid #000; padding: 6px 14px; text-align: center;">12</td>
+      </tr>
+      <tr>
+        <td style="border: 1.5px solid #000; padding: 8px 14px; font-weight: bold;">7</td>
+        <td style="border: 1.5px solid #000; padding: 8px 14px; font-weight: bold;">Conclusion &amp; Future Scope</td>
+        <td style="border: 1.5px solid #000; padding: 8px 14px; text-align: center; font-weight: bold;">13</td>
+      </tr>
+      <tr>
+        <td style="border: 1.5px solid #000; padding: 6px 14px;"></td>
+        <td style="border: 1.5px solid #000; padding: 6px 14px; padding-left: 30px;">7.1 &nbsp; Conclusion</td>
+        <td style="border: 1.5px solid #000; padding: 6px 14px; text-align: center;">13</td>
+      </tr>
+      <tr>
+        <td style="border: 1.5px solid #000; padding: 6px 14px;"></td>
+        <td style="border: 1.5px solid #000; padding: 6px 14px; padding-left: 30px;">7.2 &nbsp; Future Scope</td>
+        <td style="border: 1.5px solid #000; padding: 6px 14px; text-align: center;">13</td>
+      </tr>
+      <tr>
+        <td style="border: 1.5px solid #000; padding: 8px 14px; font-weight: bold;"></td>
+        <td style="border: 1.5px solid #000; padding: 8px 14px; font-weight: bold;">References</td>
+        <td style="border: 1.5px solid #000; padding: 8px 14px; text-align: center; font-weight: bold;">14</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ==================== CHAPTER 1 — INTRODUCTION (PAGE 1) ==================== -->
+<div class="page numbered-page">
+  <h1>CHAPTER 1<br>INTRODUCTION</h1>
+
+  <h2>1.1 Problem Statement</h2>
+  <p>
+    The Indian stock market has witnessed an unprecedented surge in retail investor participation, with the number of demat accounts crossing 15 crore in recent years. Despite this growth, a significant majority of retail investors make investment decisions based on social media tips, unverified Telegram channels, or impulsive reactions to market volatility. Professional-grade advisory services are typically expensive, often costing thousands of rupees per month, placing them beyond the reach of the average investor.
+  </p>
+  <p>
+    Existing free platforms offer fragmented tools — charting platforms display technical indicators without interpretation, news portals report headlines without quantifying sentiment impact, and fundamental screening tools provide static ratios without directional advice. No widely available free platform combines these distinct analytical dimensions into a single, machine-learning-driven advisory verdict tailored to the Indian market.
+  </p>
+  <p>
+    This gap exposes retail investors to uninformed decision-making, where critical signals such as bearish momentum divergence, negative news sentiment, or adverse global macroeconomic conditions are overlooked, leading to poorly timed entries and exits.
+  </p>
+
+  <div class="page-footer">1</div>
+</div>
+
+<!-- ==================== CHAPTER 1 — INTRODUCTION (PAGE 2) ==================== -->
+<div class="page numbered-page">
+  <h1>CHAPTER 1<br>INTRODUCTION</h1>
+
+  <h2>1.2 Objective</h2>
+  <p>
+    The objective of this project is to design and develop a web-based Multi-Signal Stock Advisory System that provides real-time BUY, HOLD, or SELL recommendations for stocks listed on the National Stock Exchange (NSE) of India. The system aims to:
+  </p>
+  <ul>
+    <li>Integrate multiple analytical signal domains — technical chart indicators, news sentiment analysis, and global macroeconomic indicators — into a unified machine learning model.</li>
+    <li>Employ an XGBoost gradient-boosted classification model trained on a 19-feature vector derived from historical price data, curated news sentiment, and global market correlations.</li>
+    <li>Provide real-time advisory verdicts with confidence percentages, enabling investors to make informed decisions without requiring deep technical expertise.</li>
+    <li>Deploy the system as a freely accessible serverless web application, ensuring zero installation requirements for end users.</li>
+  </ul>
+  
+  <div class="page-footer">2</div>
+</div>
+
+<!-- ==================== CHAPTER 1 — INTRODUCTION (PAGE 3) ==================== -->
+<div class="page numbered-page">
+  <h1>CHAPTER 1<br>INTRODUCTION</h1>
+  
+  <h2>1.3 Scope</h2>
+  <p>
+    The system currently supports over 110 actively traded large-cap and mid-cap stocks on the NSE. The coverage includes major indices constituents across sectors such as Information Technology (TCS, Infosys, Wipro), Banking (HDFC Bank, ICICI Bank, SBI), Automobiles (Tata Motors, Maruti Suzuki), Pharmaceuticals (Sun Pharma, Dr. Reddy's), and Energy (Reliance Industries, ONGC), among others.
+  </p>
+  <p>
+    The system provides the following functional capabilities: (a) a real-time multi-signal analysis dashboard with verdict card, probability distribution, and signal summaries; (b) a 10-day historical signal trend tracker that visualizes how the advisory verdict has changed over the past two trading weeks; (c) fundamental ratio displays including P/E ratio, P/B ratio, Debt-to-Equity ratio, and market capitalization; (d) a side-by-side stock comparison mode; and (e) a strategy backtesting module that simulates historical trading performance based on model signals.
+  </p>
+
+  <div class="page-footer">3</div>
+</div>
+
+<!-- ==================== CHAPTER 2 — SYSTEM ARCHITECTURE (PAGE 3) ==================== -->
+<div class="page numbered-page">
+  <h1>CHAPTER 2<br>SYSTEM ARCHITECTURE</h1>
+
+  <h2>2.1 High-Level Architecture Diagram</h2>
+  <p class="no-indent">
+    The following diagram illustrates the end-to-end architecture of the Multi-Signal Stock Advisory System, from user input to rendered advisory output:
+  </p>
+
+  <div class="arch-diagram">
+    <!-- User Layer -->
+    <div class="arch-row">
+      <div class="arch-box primary" style="min-width: 300px;">👤 USER (Web Browser)</div>
+    </div>
+    <div class="arch-arrow">↕</div>
+
+    <!-- Frontend -->
+    <div class="arch-row">
+      <div class="arch-box primary" style="min-width: 300px;">React + Vite Frontend<br><small>(Dashboard, Charts, Verdict Card)</small></div>
+    </div>
+    <div class="arch-arrow">↕ HTTPS API Call</div>
+
+    <!-- Backend API -->
+    <div class="arch-row">
+      <div class="arch-box secondary" style="min-width: 300px;">Vercel Serverless Python API<br><small>(api/analyze.py)</small></div>
+    </div>
+    <div class="arch-arrow">↓ Concurrent Data Fetching</div>
+
+    <!-- Data Sources -->
+    <div class="arch-row">
+      <div class="arch-box accent">Yahoo Finance<br><small>Price, Volume,<br>Indicators</small></div>
+      <div class="arch-box accent">Google Gemini<br><small>News Sentiment<br>Analysis</small></div>
+      <div class="arch-box accent">Moneycontrol<br><small>FII/DII<br>Institutional Data</small></div>
+      <div class="arch-box accent">Yahoo Finance<br><small>S&P 500, Crude,<br>USD/INR</small></div>
+    </div>
+    <div class="arch-arrow">↓ Feature Construction</div>
+
+    <!-- Processing -->
+    <div class="arch-row">
+      <div class="arch-box" style="min-width: 250px;">Feature Engineering<br><small>(19-Feature Vector)</small></div>
+      <div class="arch-box" style="min-width: 250px;">XGBoost JSON Evaluator<br><small>(Pure-Python Tree Walker)</small></div>
+    </div>
+    <div class="arch-arrow">↓ Verdict + Explanation</div>
+
+    <!-- Output -->
+    <div class="arch-row">
+      <div class="arch-box primary" style="min-width: 400px;">JSON Response → Dashboard Render<br><small>(BUY / HOLD / SELL with Confidence %, Signal Cards, Trend Chart)</small></div>
+    </div>
+  </div>
+
+  <p class="no-indent" style="font-size: 11pt; text-align: center; color: #555; margin-top: 5px;">
+    <em>Figure 2.1: High-Level System Architecture of Multi-Signal Stock Advisory System</em>
+  </p>
+
+  <div class="page-footer">4</div>
+</div>
+
+<!-- ==================== CHAPTER 2 — SYSTEM ARCHITECTURE (PAGE 4) ==================== -->
+<div class="page numbered-page">
+  <h1>CHAPTER 2<br>SYSTEM ARCHITECTURE</h1>
+
+  <h2>2.2 Technology Stack</h2>
+  <table>
+    <tr>
+      <th>Layer</th>
+      <th>Technology</th>
+      <th>Purpose</th>
+    </tr>
+    <tr>
+      <td>Frontend</td>
+      <td>React 18, Vite, Recharts</td>
+      <td>User interface, charting, data visualization</td>
+    </tr>
+    <tr>
+      <td>Backend API</td>
+      <td>Python 3.12, Vercel Serverless Functions</td>
+      <td>Data fetching, feature engineering, model evaluation</td>
+    </tr>
+    <tr>
+      <td>ML Model</td>
+      <td>XGBoost (JSON tree format)</td>
+      <td>3-class classification (BUY / HOLD / SELL)</td>
+    </tr>
+    <tr>
+      <td>Sentiment Engine</td>
+      <td>Google Gemini LLM API</td>
+      <td>Real-time news headline sentiment scoring</td>
+    </tr>
+    <tr>
+      <td>Price Data</td>
+      <td>Yahoo Finance (yfinance)</td>
+      <td>Historical and live OHLCV data for NSE stocks</td>
+    </tr>
+    <tr>
+      <td>Macro Data</td>
+      <td>Yahoo Finance (^GSPC, CL=F, INR=X)</td>
+      <td>S&P 500, Crude Oil, USD/INR returns</td>
+    </tr>
+    <tr>
+      <td>Institutional Data</td>
+      <td>Moneycontrol Web Scraper</td>
+      <td>FII/DII net buy/sell flow (display only)</td>
+    </tr>
+    <tr>
+      <td>Deployment</td>
+      <td>Vercel (Hobby Plan)</td>
+      <td>Serverless hosting with CDN edge network</td>
+    </tr>
+  </table>
+
+  <h2>2.3 Data Flow Workflow</h2>
+  <p>
+    When a user submits a stock ticker for analysis, the system executes the following workflow sequentially:
+  </p>
+  <ol>
+    <li><strong>Ticker Resolution:</strong> The user's input query is matched against a supported stock dictionary to resolve the correct NSE ticker symbol (e.g., "Reliance" → "RELIANCE.NS").</li>
+    <li><strong>Concurrent Data Fetching:</strong> The API backend dispatches parallel requests using Python's <code>concurrent.futures.ThreadPoolExecutor</code> to simultaneously fetch: (a) 1-year historical OHLCV price data from Yahoo Finance, (b) live news headlines and Gemini-based sentiment analysis, (c) 10-day FII/DII net flow data from Moneycontrol, and (d) global macro indicator returns (S&P 500, Crude Oil, USD/INR).</li>
+    <li><strong>Technical Indicator Computation:</strong> From the raw price data, the system computes RSI (14-day), MACD histogram, MACD crossover signal, 50-day and 200-day simple moving averages, golden cross detection, and volume ratio.</li>
+    <li><strong>Feature Vector Construction:</strong> A 19-dimensional feature vector is assembled by combining the computed technical indicators with sentiment scores, macro returns, and momentum window features (RSI slope, 5-day and 20-day price changes, 10-day volatility).</li>
+    <li><strong>Model Evaluation:</strong> The feature vector is passed through a pure-Python XGBoost JSON tree evaluator that walks the decision tree structure to produce class probabilities for BUY, HOLD, and SELL.</li>
+    <li><strong>Verdict Generation:</strong> The class with the highest probability is selected as the verdict, subject to a 55% minimum confidence threshold. If no class meets this threshold, a HOLD verdict is issued.</li>
+    <li><strong>Response Rendering:</strong> The API returns a structured JSON response containing the verdict, probabilities, all computed indicators, sentiment summary, institutional flow data, fundamental ratios, and advisory notes. The React frontend renders this data across the dashboard cards.</li>
+  </ol>
+
+  <div class="page-footer">5</div>
+</div>
+
+<!-- ==================== CHAPTER 3 — FEATURE ENGINEERING & ML MODEL (PAGE 5) ==================== -->
+<div class="page numbered-page">
+  <h1>CHAPTER 3<br>FEATURE ENGINEERING &amp; ML MODEL</h1>
+
+  <h2>3.1 The 19-Feature Vector</h2>
+  <p>
+    The XGBoost model consumes a carefully engineered 19-dimensional feature vector, organized across four distinct signal domains. Each feature is computed from real-time market data during inference and from historical data during training:
+  </p>
+
+  <table>
+    <tr>
+      <th>Signal Domain</th>
+      <th>Feature Name</th>
+      <th>Description</th>
+    </tr>
+    <tr><td rowspan="10">Technical Indicators</td><td>RSI</td><td>14-day Relative Strength Index (0–100)</td></tr>
+    <tr><td>MACD_Hist</td><td>MACD histogram value (signal line difference)</td></tr>
+    <tr><td>MACD_Crossover</td><td>Binary flag: MACD line crossed signal line</td></tr>
+    <tr><td>Price_Above_MA50</td><td>Binary: current price above 50-day SMA</td></tr>
+    <tr><td>Price_Above_MA200</td><td>Binary: current price above 200-day SMA</td></tr>
+    <tr><td>Golden_Cross</td><td>Binary: 50-day SMA crossed above 200-day SMA</td></tr>
+    <tr><td>Volume_Ratio</td><td>Current volume / 20-day average volume</td></tr>
+    <tr><td>Multi_Timeframe_Alignment</td><td>Composite alignment score of trend indicators</td></tr>
+    <tr><td>RSI_Slope</td><td>RSI momentum direction over 5 days</td></tr>
+    <tr><td>Volatility_10d</td><td>10-day rolling standard deviation of returns</td></tr>
+    <tr><td rowspan="4">News Sentiment</td><td>Sentiment_Score</td><td>Aggregated headline sentiment (−1 to +1)</td></tr>
+    <tr><td>Positive_Headlines</td><td>Scaled count of positive news articles</td></tr>
+    <tr><td>Negative_Headlines</td><td>Scaled count of negative news articles</td></tr>
+    <tr><td>Sentiment_Available</td><td>Binary flag: sentiment data present or not</td></tr>
+    <tr><td rowspan="3">Global Macro</td><td>SP500_Return</td><td>S&P 500 index daily return</td></tr>
+    <tr><td>Crude_Return</td><td>Crude oil daily return</td></tr>
+    <tr><td>USD_INR_Return</td><td>USD to INR exchange rate daily return</td></tr>
+    <tr><td rowspan="2">Momentum Windows</td><td>Price_Pct_5d</td><td>Price percentage change over 5 trading days</td></tr>
+    <tr><td>Price_Pct_20d</td><td>Price percentage change over 20 trading days</td></tr>
+  </table>
+
+  <p class="no-indent" style="font-size: 11pt; text-align: center; color: #555;">
+    <em>Table 3.1: Complete 19-Feature Vector used by the XGBoost Model</em>
+  </p>
+
+  <div class="page-footer">6</div>
+</div>
+
+<!-- ==================== CHAPTER 3 — FEATURE ENGINEERING & ML MODEL (PAGE 6) ==================== -->
+<div class="page numbered-page">
+  <h1>CHAPTER 3<br>FEATURE ENGINEERING &amp; ML MODEL</h1>
+
+  <h2>3.2 XGBoost Classification</h2>
+  <p>
+    The advisory model is built using XGBoost (Extreme Gradient Boosting), a gradient-boosted decision tree ensemble algorithm. The model is trained as a multi-class classifier with three output classes: BUY (class 0), HOLD (class 1), and SELL (class 2). Training is performed on one year of historical data across 110 NSE stocks, with labels assigned based on forward-looking 5-day returns: if the price increased by more than 2%, the label is BUY; if it decreased by more than 2%, the label is SELL; otherwise, HOLD.
+  </p>
+  <p>
+    A critical engineering decision in this project was the implementation of a <strong>pure-Python XGBoost JSON tree evaluator</strong>. Serverless platforms such as Vercel impose strict binary dependency restrictions and memory limits that prevent the installation of the native XGBoost C++ library. To overcome this, the trained model is exported to a JSON tree structure, and a custom Python function walks through the decision trees at inference time — evaluating split conditions, traversing left/right child nodes, and aggregating leaf values to compute softmax class probabilities. This approach eliminates the need for any compiled binary dependencies while producing mathematically identical results to the native library.
+  </p>
+  <p>
+    A minimum confidence threshold of 55% is enforced: if no class probability exceeds this threshold, the system defaults to a HOLD verdict to avoid providing low-confidence directional advice.
+  </p>
+
+  <h2>3.3 10-Day Signal Trend Tracker</h2>
+  <p>
+    The system includes a 10-day historical signal trend tracker that visualizes how the advisory verdict has evolved over the past ten trading days. For each historical day, the system slices the price data up to that day only (preventing future data leakage), recomputes all 19 features using only information available on that date, evaluates the XGBoost model, and records the resulting verdict and confidence score. This produces a time-series trend line displayed as an interactive Recharts area chart on the dashboard, with a pulsating marker on the most recent day's data point.
+  </p>
+
+  <div class="page-footer">7</div>
+</div>
+
+<!-- ==================== CHAPTER 4 — KEY FEATURES & SCREENSHOTS (PAGE 7) ==================== -->
+<div class="page numbered-page">
+  <h1>CHAPTER 4<br>KEY FEATURES &amp; SCREENSHOTS</h1>
+
+  <p>
+    This chapter presents the key features of the Multi-Signal Stock Advisory System through screenshots of the live production deployment. The system is accessible at the deployed Vercel URL and provides a comprehensive dashboard-style interface.
+  </p>
+
+  <h2>4.1 Dashboard Overview</h2>
+  <div style="height: 250px; margin: 15px 0;"></div>
+
+  <h2>4.2 Signal Summary Cards</h2>
+  <div style="height: 250px; margin: 15px 0;"></div>
+
+  <h2>4.3 10-Day Trend Chart &amp; Technical Details</h2>
+  <div style="height: 250px; margin: 15px 0;"></div>
+
+  <div class="page-footer">8</div>
+</div>
+
+<!-- ==================== CHAPTER 4 — KEY FEATURES & SCREENSHOTS (PAGE 8) ==================== -->
+<div class="page numbered-page">
+  <h1>CHAPTER 4<br>KEY FEATURES &amp; SCREENSHOTS</h1>
+
+  <h2>4.4 Side-by-Side Comparison Mode</h2>
+  <div style="height: 250px; margin: 15px 0;"></div>
+
+  <h2>4.5 Strategy Backtesting</h2>
+  <div style="height: 250px; margin: 15px 0;"></div>
+
+  <h2>4.6 Terminal Chatbot Interface</h2>
+  <div style="height: 250px; margin: 15px 0;"></div>
+
+  <div class="page-footer">9</div>
+</div>
+
+<!-- ==================== CHAPTER 5 — MERITS AND DEMERITS (PAGE 9) ==================== -->
+<div class="page numbered-page">
+  <h1>CHAPTER 5<br>MERITS AND DEMERITS</h1>
+
+  <h2>5.1 Merits</h2>
+  <ol>
+    <li><strong>Multi-Signal Fusion:</strong> Unlike platforms that offer isolated tools, this system fuses three independent signal domains (technical indicators, news sentiment, and global macro indicators) into a single machine-learning-driven verdict, providing a holistic view of stock conditions.</li>
+    <li><strong>Real-Time Analysis:</strong> The system fetches live market data, computes indicators, and generates predictions in real-time. Concurrent API fetching using thread pools ensures the entire analysis completes within Vercel's serverless timeout budget.</li>
+    <li><strong>Pure-Python Serverless Evaluator:</strong> A custom XGBoost JSON tree walker was implemented to bypass binary dependency restrictions on serverless platforms. This innovation enables ML model deployment on platforms where compiled C++ libraries cannot be installed.</li>
+    <li><strong>10-Day Historical Trend Visualization:</strong> The system provides a unique trend tracker that shows how the advisory verdict has evolved over the past 10 trading days, helping investors understand momentum direction rather than relying on a single point-in-time recommendation.</li>
+    <li><strong>Context-Aware Advisory Notes:</strong> The system detects user intent from the search query (e.g., "should I buy TCS" vs. "should I sell TCS") and tailors the advisory explanation to match the user's perspective, improving the relevance and usability of the advice.</li>
+    <li><strong>Free and Accessible:</strong> The entire system is deployed on Vercel's free tier and requires no installation, registration, or subscription, making professional-grade stock analysis accessible to any retail investor with a web browser.</li>
+  </ol>
+
+  <div class="page-footer">10</div>
+</div>
+
+<!-- ==================== CHAPTER 5 — MERITS AND DEMERITS (PAGE 10) ==================== -->
+<div class="page numbered-page">
+  <h1>CHAPTER 5<br>MERITS AND DEMERITS</h1>
+
+  <h2>5.2 Demerits</h2>
+  <ol>
+    <li><strong>Limited Stock Coverage:</strong> The model is currently trained on approximately 110 large-cap and mid-cap NSE stocks. While the system can analyze any stock through dynamic ticker resolution, prediction accuracy may be reduced for micro-cap or newly listed stocks that were not part of the training dataset.</li>
+    <li><strong>FII/DII Data Not in Model:</strong> Foreign Institutional Investor (FII) and Domestic Institutional Investor (DII) flow data is fetched and displayed on the dashboard but is not yet integrated into the XGBoost model's feature vector. This data currently serves as a visual advisory aid only.</li>
+    <li><strong>Headline-Level Sentiment Analysis:</strong> The news sentiment engine analyzes headline text only, not full article bodies. This can occasionally lead to incomplete sentiment assessment when the headline tone differs from the article's detailed content.</li>
+    <li><strong>No Portfolio Tracking:</strong> The system provides advisory recommendations only and does not offer user authentication, portfolio management, or direct trade execution capabilities.</li>
+    <li><strong>Serverless Timeout Constraints:</strong> Vercel's free tier imposes a 60-second function execution limit. During periods of high API latency from upstream data providers (Yahoo Finance, Gemini), the analysis may occasionally time out.</li>
+  </ol>
+
+  <div class="page-footer">11</div>
+</div>
+
+<!-- ==================== CHAPTER 6 — COMPARISON WITH EXISTING WORK (PAGE 11) ==================== -->
+<div class="page numbered-page">
+  <h1>CHAPTER 6<br>COMPARISON WITH EXISTING WORK</h1>
+
+  <p>
+    This chapter compares the Multi-Signal Stock Advisory System with two widely used existing platforms to highlight the improvements and differences offered by this project.
+  </p>
+
+  <h2>6.1 TradingView</h2>
+  <p class="no-indent">
+    TradingView is a globally popular charting and technical analysis platform used by traders worldwide. A comparison with the proposed system reveals the following distinctions:
+  </p>
+  <ul>
+    <li>TradingView provides advanced interactive charting tools with a wide range of technical indicators such as RSI, MACD, Bollinger Bands, and Fibonacci retracements. However, the interpretation of these indicators is left entirely to the user — the platform does not generate automated BUY, HOLD, or SELL recommendations.</li>
+    <li>TradingView does not incorporate news sentiment analysis. Users must manually track financial news from external sources and assess its potential impact on stock prices.</li>
+    <li>Global macroeconomic indicators such as S&P 500 correlation, crude oil returns, and currency exchange impacts are not integrated into any automated advisory output.</li>
+    <li>Full access to TradingView's features requires a paid subscription (Essential, Plus, or Premium plans), placing comprehensive analysis behind a paywall.</li>
+  </ul>
+  <p class="our-edge no-indent">
+    Our Improvement: The proposed system automates chart interpretation through an XGBoost machine learning model, combines it with real-time sentiment and macro signals, and delivers a unified advisory verdict — all accessible for free without any subscription.
+  </p>
+
+  <h2>6.2 Tickertape</h2>
+  <p class="no-indent">
+    Tickertape is an Indian financial data platform focused on fundamental analysis and stock screening. The following differences are noted:
+  </p>
+  <ul>
+    <li>Tickertape excels at fundamental screening, providing detailed financial metrics including P/E ratio, P/B ratio, return on equity, and debt ratios. It also offers stock comparison tools and curated screeners for different investment styles.</li>
+    <li>Tickertape does not provide real-time machine-learning-based directional predictions. Its analysis is based on static financial ratios and does not produce actionable BUY or SELL recommendations.</li>
+    <li>The platform does not perform real-time news sentiment analysis or integrate live sentiment scores into its stock evaluation.</li>
+    <li>Tickertape does not offer historical signal trend tracking or strategy backtesting based on ML-generated signals.</li>
+  </ul>
+  <p class="our-edge no-indent">
+    Our Improvement: While Tickertape provides excellent static fundamental data, our system adds a dynamic, real-time predictive layer by fusing technical indicators, sentiment analysis, and macro signals into an ML model that provides directional advice with confidence scores and historical trend context.
+  </p>
+
+  <h2>6.3 Summary</h2>
+  <p>
+    Existing platforms such as TradingView and Tickertape provide valuable but isolated analytical tools — either technical charting or fundamental screening. The Multi-Signal Stock Advisory System differentiates itself by fusing three signal domains into a unified machine-learning model that generates real-time, actionable advisory verdicts. This end-to-end integration, combined with free accessibility and serverless deployment, represents a distinct contribution to the Indian retail investment ecosystem.
+  </p>
+
+  <div class="page-footer">12</div>
+</div>
+
+<!-- ==================== CHAPTER 7 — CONCLUSION & FUTURE SCOPE (PAGE 12) ==================== -->
+<div class="page numbered-page">
+  <h1>CHAPTER 7<br>CONCLUSION &amp; FUTURE SCOPE</h1>
+
+  <h2>7.1 Conclusion</h2>
+  <p>
+    This project successfully designed, developed, and deployed a Multi-Signal Stock Advisory System that addresses the information asymmetry faced by retail investors in the Indian stock market. By combining three distinct analytical signal domains — technical chart indicators, news sentiment analysis, and global macroeconomic indicators — into a unified XGBoost-based classification model, the system generates real-time BUY, HOLD, or SELL recommendations with confidence percentages for over 110 NSE-listed stocks.
+  </p>
+  <p>
+    The system was deployed as a serverless web application on Vercel, featuring a React-based frontend with interactive data visualizations and a Python-based API backend. A key technical contribution of this project is the implementation of a pure-Python XGBoost JSON tree evaluator, which enables machine learning model inference on serverless platforms without requiring compiled binary dependencies. The 10-day signal trend tracker provides investors with historical context for the advisory verdict, moving beyond single-point predictions to trend-aware analysis.
+  </p>
+  <p>
+    The project demonstrates that a multi-signal fusion approach to stock advisory can be implemented as a practical, freely accessible tool for the Indian retail investment community, bridging the gap between sophisticated institutional analysis and individual investor capabilities.
+  </p>
+
+  <h2>7.2 Future Scope</h2>
+  <p>
+    The following enhancements are planned for future versions of the system:
+  </p>
+  <ol>
+    <li>
+      <strong>Integrate FII/DII Flows into the ML Model (5-Signal Upgrade):</strong> Foreign Institutional Investor and Domestic Institutional Investor net flow data is currently displayed on the dashboard as a visual advisory aid. In future iterations, this data will be incorporated directly into the XGBoost model's feature vector, enabling the model to learn correlations between institutional buying/selling patterns and subsequent price movements. This upgrade would transform the system from a 3-signal to a 5-signal advisory engine.
+    </li>
+    <li>
+      <strong>Expand to All NSE/BSE Stocks:</strong> The current system supports approximately 110 curated stocks. By leveraging Yahoo Finance's dynamic ticker resolution API, the system can be expanded to support all actively traded stocks on both the NSE and BSE exchanges. This would involve replacing the static stock dictionary with a dynamic search-and-resolve mechanism that maps user queries to valid ticker symbols in real-time.
+    </li>
+    <li>
+      <strong>Add User Portfolio Tracking and Personalized Watchlists:</strong> Future versions will introduce user authentication and portfolio management features, allowing investors to maintain a personal watchlist, track their holdings, receive automated alerts when the advisory verdict changes for a watched stock, and view portfolio-level risk assessments based on the model's multi-signal analysis.
+    </li>
+  </ol>
+
+  <div class="page-footer">13</div>
+</div>
+
+<!-- ==================== REFERENCES (PAGE 13) ==================== -->
+<div class="page numbered-page">
+  <h1>REFERENCES</h1>
+  <br>
+
+  <p class="reference-entry no-indent">
+    Dey, S., Kumar, Y., Saha, S., &amp; Basak, S. (2021). Stock Market Prediction Using XGBoost. <em>International Journal of Creative Research Thoughts (IJCRT)</em>, 9(6), 828–835.
+    <br>
+    <a href="https://www.ijcrt.org/papers/IJCRT2106479.pdf" target="_blank">https://www.ijcrt.org/papers/IJCRT2106479.pdf</a>
+  </p>
+
+  <p class="reference-entry no-indent">
+    Mohan, S., Mullapudi, S., Sammeta, S., Vijayvergia, P., &amp; Anastasiu, D. C. (2019). Stock Price Prediction Using News Sentiment Analysis. <em>Proceedings of the IEEE Fifth International Conference on Big Data Computing Service and Applications (BigDataService)</em>, 205–208.
+    <br>
+    <a href="https://ieeexplore.ieee.org/document/8848203" target="_blank">https://ieeexplore.ieee.org/document/8848203</a>
+  </p>
+
+  <p class="reference-entry no-indent">
+    Sharma, A., Bhuriya, D., &amp; Singh, U. (2017). Survey of Stock Market Prediction Using Machine Learning Approach. <em>International Conference on Electronics, Communication and Aerospace Technology (ICECA)</em>, IEEE, 506–509.
+    <br>
+    <a href="https://ieeexplore.ieee.org/document/8212712" target="_blank">https://ieeexplore.ieee.org/document/8212712</a>
+  </p>
+
+  <p class="reference-entry no-indent">
+    Chen, T., &amp; Guestrin, C. (2016). XGBoost: A Scalable Tree Boosting System. <em>Proceedings of the 22nd ACM SIGKDD International Conference on Knowledge Discovery and Data Mining</em>, 785–794.
+    <br>
+    <a href="https://dl.acm.org/doi/10.1145/2939672.2939785" target="_blank">https://dl.acm.org/doi/10.1145/2939672.2939785</a>
+  </p>
+
+  <p class="reference-entry no-indent">
+    Kumbure, M. M., Lohrmann, C., Luukka, P., &amp; Porber, J. (2022). Machine Learning Techniques and Data for Stock Market Forecasting: A Literature Review. <em>Expert Systems with Applications</em>, 197, 116659.
+    <br>
+    <a href="https://www.sciencedirect.com/science/article/pii/S0957417422001452" target="_blank">https://www.sciencedirect.com/science/article/pii/S0957417422001452</a>
+  </p>
+
+  <p class="reference-entry no-indent">
+    Nti, I. K., Adekoya, A. F., &amp; Weyori, B. A. (2020). A Systematic Review of Fundamental and Technical Analysis of Stock Market Predictions. <em>Artificial Intelligence Review</em>, 53, 3007–3057.
+    <br>
+    <a href="https://link.springer.com/article/10.1007/s10462-019-09754-z" target="_blank">https://link.springer.com/article/10.1007/s10462-019-09754-z</a>
+  </p>
+
+  <div class="page-footer">14</div>
+</div>
+
+</body>
+</html>
