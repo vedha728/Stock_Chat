@@ -18,7 +18,7 @@
     font-size: 13pt;
     line-height: 1.8;
     color: #000;
-    background: #fff;
+    background: #e0e0e0;
   }
 
   /* Page setup for screen and print */
@@ -29,7 +29,7 @@
     margin: 20px auto;
     padding: 2.5cm 2.5cm 2.5cm 3cm;
     background: #fff;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
     box-sizing: border-box;
     page-break-after: always;
     page-break-inside: avoid;
@@ -61,25 +61,28 @@
 
   /* Typography */
   h1 {
-    font-size: 22pt;
+    font-size: 20pt;
     font-weight: bold;
     text-align: center;
-    margin-bottom: 20px;
+    margin-bottom: 25px;
     text-transform: uppercase;
+    letter-spacing: 0.5px;
   }
 
   h2 {
-    font-size: 16pt;
+    font-size: 15pt;
     font-weight: bold;
-    margin-top: 30px;
+    margin-top: 25px;
     margin-bottom: 12px;
+    border-bottom: 1px solid #ddd;
+    padding-bottom: 4px;
   }
 
   h3 {
-    font-size: 14pt;
+    font-size: 13pt;
     font-weight: bold;
-    margin-top: 20px;
-    margin-bottom: 8px;
+    margin-top: 15px;
+    margin-bottom: 6px;
   }
 
   p {
@@ -99,27 +102,29 @@
 
   li {
     margin-bottom: 6px;
+    text-align: justify;
   }
 
-  /* Title page */
+  /* Title page styling */
   .title-page {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     text-align: center;
-    min-height: 90vh;
+    height: 100%;
+    padding: 20px;
   }
 
   .title-page .placeholder-box {
-    border: 2px dashed #999;
-    padding: 40px 60px;
-    margin: 20px;
-    color: #666;
+    border: 2px dashed #777;
+    padding: 30px 50px;
+    margin: 20px 0;
+    color: #555;
     font-style: italic;
     font-size: 14pt;
-    border-radius: 8px;
-    background: #f9f9f9;
+    background: #fcfcfc;
+    border-radius: 6px;
   }
 
   /* Declaration page */
@@ -129,69 +134,32 @@
     align-items: center;
     justify-content: center;
     text-align: center;
-    min-height: 90vh;
-  }
-
-  /* Abstract */
-  .abstract-content {
-    margin-top: 20px;
-  }
-
-  /* Table of Contents */
-  .toc-entry {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    padding: 6px 0;
-    border-bottom: 1px dotted #ccc;
-    font-size: 13pt;
-    text-indent: 0;
-  }
-
-  .toc-entry.chapter {
-    font-weight: bold;
-    font-size: 13.5pt;
-  }
-
-  .toc-entry.sub {
-    padding-left: 30px;
-    font-weight: normal;
-  }
-
-  .toc-chapter-num {
-    min-width: 60px;
-  }
-
-  .toc-dots {
-    flex: 1;
-    border-bottom: 1px dotted #999;
-    margin: 0 8px;
-    height: 1px;
+    height: 100%;
   }
 
   /* Tables */
   table {
     width: 100%;
     border-collapse: collapse;
-    margin: 16px 0;
-    font-size: 12pt;
+    margin: 12px 0;
+    font-size: 11pt;
   }
 
   table th, table td {
-    border: 1px solid #333;
-    padding: 8px 12px;
+    border: 1px solid #111;
+    padding: 6px 10px;
     text-align: left;
-    vertical-align: top;
+    vertical-align: middle;
   }
 
   table th {
-    background-color: #e8e8e8;
+    background-color: #f2f2f2;
     font-weight: bold;
   }
 
   /* Architecture diagram */
   .arch-diagram {
-    margin: 5px auto;
+    margin: 15px auto;
     padding: 10px;
     max-width: 100%;
   }
@@ -202,24 +170,24 @@
     text-align: center;
     font-weight: bold;
     font-size: 10pt;
-    background: #f0f0f0;
+    background: #f5f5f5;
     margin: 2px;
     border-radius: 4px;
   }
 
   .arch-box.primary {
-    background: #d4edda;
-    border-color: #155724;
+    background: #e2f0d9;
+    border-color: #385723;
   }
 
   .arch-box.secondary {
-    background: #cce5ff;
-    border-color: #004085;
+    background: #ddebf7;
+    border-color: #1f4e78;
   }
 
   .arch-box.accent {
-    background: #fff3cd;
-    border-color: #856404;
+    background: #fff2cc;
+    border-color: #7f6000;
   }
 
   .arch-arrow {
@@ -240,6 +208,7 @@
     margin: 3px 0;
   }
 
+  /* Page number footer */
   .page-footer {
     position: absolute;
     bottom: 25px;
@@ -248,70 +217,32 @@
     text-align: center;
     font-size: 12pt;
     font-family: 'Times New Roman', Times, serif;
+    font-weight: normal;
+    color: #000;
   }
 
-  /* Screenshot placeholder */
-  .screenshot-placeholder {
-    border: 2px dashed #aaa;
-    padding: 80px 40px;
-    text-align: center;
-    color: #888;
-    font-style: italic;
-    font-size: 13pt;
-    margin: 20px 0;
-    background: #fafafa;
-    border-radius: 6px;
-    min-height: 250px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  /* Reference entry */
-  .reference-entry {
-    text-indent: -40px;
-    padding-left: 40px;
-    margin-bottom: 18px;
-    text-align: left;
-  }
-
-  .reference-entry a {
-    color: #0066cc;
-    word-break: break-all;
-  }
-
-  /* Page number footer */
-
-
-  /* Horizontal rule */
-  hr {
-    border: none;
-    border-top: 1px solid #ccc;
-    margin: 20px 0;
-  }
-
-  /* Comparison section */
-  .comparison-point {
-    margin-bottom: 6px;
-  }
-
+  /* Comparison formatting */
   .our-edge {
     font-weight: bold;
-    margin-top: 8px;
-    color: #155724;
+    margin-top: 6px;
+    color: #2e7d32;
+    background: #e8f5e9;
+    padding: 4px 8px;
+    border-radius: 4px;
+    display: inline-block;
   }
 </style>
 </head>
 <body>
 
-<!-- ==================== PAGE: TITLE (BLANK) ==================== -->
+<!-- ==================== PAGE 1: TITLE PAGE (BLANK) ==================== -->
 <div class="page no-page-number">
   <div class="title-page">
     <div class="placeholder-box">
       [ Insert College Logo Here ]
     </div>
     <br>
-    <h1 style="font-size: 24pt; margin-top: 20px;">MULTI-SIGNAL STOCK ADVISORY SYSTEM</h1>
+    <h1 style="font-size: 24pt; margin-top: 15px; border: none;">MULTI-SIGNAL STOCK ADVISORY SYSTEM</h1>
     <p class="no-indent" style="font-size: 14pt; margin-top: 10px;">A Project Report</p>
     <br><br>
     <div class="placeholder-box">
@@ -321,36 +252,36 @@
   </div>
 </div>
 
-<!-- ==================== PAGE: DECLARATION (BLANK) ==================== -->
+<!-- ==================== PAGE 2: DECLARATION (BLANK) ==================== -->
 <div class="page no-page-number">
   <div class="declaration-page">
-    <div class="placeholder-box" style="min-height: 400px; min-width: 500px;">
+    <div class="placeholder-box" style="min-height: 450px; min-width: 550px; display: flex; align-items: center; justify-content: center;">
       [ Insert Declaration Content Here ]
     </div>
   </div>
 </div>
 
-<!-- ==================== PAGE: ABSTRACT ==================== -->
+<!-- ==================== PAGE 3: ABSTRACT ==================== -->
 <div class="page no-page-number">
   <h1>ABSTRACT</h1>
-  <div class="abstract-content">
+  <div style="margin-top: 25px;">
     <p>
       The Indian retail investment landscape has seen rapid growth in recent years, with millions of new investors entering the stock market through digital platforms. However, most retail investors lack the technical expertise to interpret complex chart patterns, track global macroeconomic shifts, or analyze news sentiment — all of which significantly influence stock price movements. Existing platforms such as TradingView and Tickertape provide isolated tools for either technical charting or fundamental screening, but none offer an integrated, machine-learning-driven advisory system that fuses multiple signal domains into a single actionable recommendation.
     </p>
     <p>
       This project presents a <strong>Multi-Signal Stock Advisory System</strong> that addresses this gap by combining three distinct analytical signal domains — <em>Technical Chart Indicators</em>, <em>News Sentiment Analysis</em>, and <em>Global Macro Indicators</em> — into a unified XGBoost-based classification model. The system fetches real-time market data from Yahoo Finance, processes live news headlines through Google Gemini LLM for sentiment scoring, and incorporates S&P 500, Crude Oil, and USD/INR exchange rate returns as macroeconomic context. A 19-feature vector is constructed and evaluated against a pre-trained XGBoost model to produce a BUY, HOLD, or SELL verdict with a confidence percentage. The system also features a 10-day historical signal trend tracker, fundamental ratio displays, and a strategy backtesting module. The entire application is deployed as a serverless web application on Vercel, with a React-based frontend and Python-based API backend, making it freely accessible to any retail investor.
     </p>
-    <p>
+    <p style="margin-top: 20px;">
       <strong>Keywords:</strong> Stock Market Prediction, XGBoost, Sentiment Analysis, Technical Indicators, Multi-Signal Fusion, Indian Stock Market, NSE, Machine Learning, Serverless Deployment.
     </p>
   </div>
 </div>
 
-<!-- ==================== PAGE: TABLE OF CONTENTS ==================== -->
+<!-- ==================== PAGE 4: TABLE OF CONTENTS ==================== -->
 <div class="page no-page-number">
   <h1>TABLE OF CONTENTS</h1>
   <br>
-  <table style="width: 100%; border-collapse: collapse; font-size: 13pt;">
+  <table style="width: 100%; border-collapse: collapse; font-size: 12.5pt; margin-top: 10px;">
     <thead>
       <tr>
         <th style="border: 1.5px solid #000; padding: 10px 14px; text-align: left; width: 15%;">Chapter No.</th>
@@ -365,19 +296,19 @@
         <td style="border: 1.5px solid #000; padding: 8px 14px; text-align: center; font-weight: bold;">1</td>
       </tr>
       <tr>
-        <td style="border: 1.5px solid #000; padding: 6px 14px;"></td>
-        <td style="border: 1.5px solid #000; padding: 6px 14px; padding-left: 30px;">1.1 &nbsp; Problem Statement</td>
-        <td style="border: 1.5px solid #000; padding: 6px 14px; text-align: center;">1</td>
+        <td style="border: 1.5px solid #000; padding: 5px 14px;"></td>
+        <td style="border: 1.5px solid #000; padding: 5px 14px; padding-left: 30px;">1.1 &nbsp; Problem Statement</td>
+        <td style="border: 1.5px solid #000; padding: 5px 14px; text-align: center;">1</td>
       </tr>
       <tr>
-        <td style="border: 1.5px solid #000; padding: 6px 14px;"></td>
-        <td style="border: 1.5px solid #000; padding: 6px 14px; padding-left: 30px;">1.2 &nbsp; Objective</td>
-        <td style="border: 1.5px solid #000; padding: 6px 14px; text-align: center;">2</td>
+        <td style="border: 1.5px solid #000; padding: 5px 14px;"></td>
+        <td style="border: 1.5px solid #000; padding: 5px 14px; padding-left: 30px;">1.2 &nbsp; Objective</td>
+        <td style="border: 1.5px solid #000; padding: 5px 14px; text-align: center;">2</td>
       </tr>
       <tr>
-        <td style="border: 1.5px solid #000; padding: 6px 14px;"></td>
-        <td style="border: 1.5px solid #000; padding: 6px 14px; padding-left: 30px;">1.3 &nbsp; Scope</td>
-        <td style="border: 1.5px solid #000; padding: 6px 14px; text-align: center;">3</td>
+        <td style="border: 1.5px solid #000; padding: 5px 14px;"></td>
+        <td style="border: 1.5px solid #000; padding: 5px 14px; padding-left: 30px;">1.3 &nbsp; Scope</td>
+        <td style="border: 1.5px solid #000; padding: 5px 14px; text-align: center;">3</td>
       </tr>
       <tr>
         <td style="border: 1.5px solid #000; padding: 8px 14px; font-weight: bold;">2</td>
@@ -385,101 +316,101 @@
         <td style="border: 1.5px solid #000; padding: 8px 14px; text-align: center; font-weight: bold;">4</td>
       </tr>
       <tr>
-        <td style="border: 1.5px solid #000; padding: 6px 14px;"></td>
-        <td style="border: 1.5px solid #000; padding: 6px 14px; padding-left: 30px;">2.1 &nbsp; High-Level Architecture Diagram</td>
-        <td style="border: 1.5px solid #000; padding: 6px 14px; text-align: center;">4</td>
+        <td style="border: 1.5px solid #000; padding: 5px 14px;"></td>
+        <td style="border: 1.5px solid #000; padding: 5px 14px; padding-left: 30px;">2.1 &nbsp; High-Level Architecture Diagram</td>
+        <td style="border: 1.5px solid #000; padding: 5px 14px; text-align: center;">4</td>
       </tr>
       <tr>
-        <td style="border: 1.5px solid #000; padding: 6px 14px;"></td>
-        <td style="border: 1.5px solid #000; padding: 6px 14px; padding-left: 30px;">2.2 &nbsp; Technology Stack</td>
-        <td style="border: 1.5px solid #000; padding: 6px 14px; text-align: center;">5</td>
+        <td style="border: 1.5px solid #000; padding: 5px 14px;"></td>
+        <td style="border: 1.5px solid #000; padding: 5px 14px; padding-left: 30px;">2.2 &nbsp; Technology Stack</td>
+        <td style="border: 1.5px solid #000; padding: 5px 14px; text-align: center;">5</td>
       </tr>
       <tr>
-        <td style="border: 1.5px solid #000; padding: 6px 14px;"></td>
-        <td style="border: 1.5px solid #000; padding: 6px 14px; padding-left: 30px;">2.3 &nbsp; Data Flow Workflow</td>
-        <td style="border: 1.5px solid #000; padding: 6px 14px; text-align: center;">5</td>
+        <td style="border: 1.5px solid #000; padding: 5px 14px;"></td>
+        <td style="border: 1.5px solid #000; padding: 5px 14px; padding-left: 30px;">2.3 &nbsp; Data Flow Workflow</td>
+        <td style="border: 1.5px solid #000; padding: 5px 14px; text-align: center;">6</td>
       </tr>
       <tr>
         <td style="border: 1.5px solid #000; padding: 8px 14px; font-weight: bold;">3</td>
         <td style="border: 1.5px solid #000; padding: 8px 14px; font-weight: bold;">Feature Engineering &amp; ML Model</td>
-        <td style="border: 1.5px solid #000; padding: 8px 14px; text-align: center; font-weight: bold;">6</td>
+        <td style="border: 1.5px solid #000; padding: 8px 14px; text-align: center; font-weight: bold;">7</td>
       </tr>
       <tr>
-        <td style="border: 1.5px solid #000; padding: 6px 14px;"></td>
-        <td style="border: 1.5px solid #000; padding: 6px 14px; padding-left: 30px;">3.1 &nbsp; The 19-Feature Vector</td>
-        <td style="border: 1.5px solid #000; padding: 6px 14px; text-align: center;">6</td>
+        <td style="border: 1.5px solid #000; padding: 5px 14px;"></td>
+        <td style="border: 1.5px solid #000; padding: 5px 14px; padding-left: 30px;">3.1 &nbsp; The 19-Feature Vector</td>
+        <td style="border: 1.5px solid #000; padding: 5px 14px; text-align: center;">7</td>
       </tr>
       <tr>
-        <td style="border: 1.5px solid #000; padding: 6px 14px;"></td>
-        <td style="border: 1.5px solid #000; padding: 6px 14px; padding-left: 30px;">3.2 &nbsp; XGBoost Classification</td>
-        <td style="border: 1.5px solid #000; padding: 6px 14px; text-align: center;">7</td>
+        <td style="border: 1.5px solid #000; padding: 5px 14px;"></td>
+        <td style="border: 1.5px solid #000; padding: 5px 14px; padding-left: 30px;">3.2 &nbsp; XGBoost Classification</td>
+        <td style="border: 1.5px solid #000; padding: 5px 14px; text-align: center;">8</td>
       </tr>
       <tr>
-        <td style="border: 1.5px solid #000; padding: 6px 14px;"></td>
-        <td style="border: 1.5px solid #000; padding: 6px 14px; padding-left: 30px;">3.3 &nbsp; 10-Day Signal Trend Tracker</td>
-        <td style="border: 1.5px solid #000; padding: 6px 14px; text-align: center;">7</td>
+        <td style="border: 1.5px solid #000; padding: 5px 14px;"></td>
+        <td style="border: 1.5px solid #000; padding: 5px 14px; padding-left: 30px;">3.3 &nbsp; 10-Day Signal Trend Tracker</td>
+        <td style="border: 1.5px solid #000; padding: 5px 14px; text-align: center;">9</td>
       </tr>
       <tr>
         <td style="border: 1.5px solid #000; padding: 8px 14px; font-weight: bold;">4</td>
         <td style="border: 1.5px solid #000; padding: 8px 14px; font-weight: bold;">Key Features &amp; Screenshots</td>
-        <td style="border: 1.5px solid #000; padding: 8px 14px; text-align: center; font-weight: bold;">8</td>
+        <td style="border: 1.5px solid #000; padding: 8px 14px; text-align: center; font-weight: bold;">10</td>
       </tr>
       <tr>
         <td style="border: 1.5px solid #000; padding: 8px 14px; font-weight: bold;">5</td>
         <td style="border: 1.5px solid #000; padding: 8px 14px; font-weight: bold;">Merits and Demerits</td>
-        <td style="border: 1.5px solid #000; padding: 8px 14px; text-align: center; font-weight: bold;">10</td>
+        <td style="border: 1.5px solid #000; padding: 8px 14px; text-align: center; font-weight: bold;">12</td>
       </tr>
       <tr>
-        <td style="border: 1.5px solid #000; padding: 6px 14px;"></td>
-        <td style="border: 1.5px solid #000; padding: 6px 14px; padding-left: 30px;">5.1 &nbsp; Merits</td>
-        <td style="border: 1.5px solid #000; padding: 6px 14px; text-align: center;">10</td>
+        <td style="border: 1.5px solid #000; padding: 5px 14px;"></td>
+        <td style="border: 1.5px solid #000; padding: 5px 14px; padding-left: 30px;">5.1 &nbsp; Merits</td>
+        <td style="border: 1.5px solid #000; padding: 5px 14px; text-align: center;">12</td>
       </tr>
       <tr>
-        <td style="border: 1.5px solid #000; padding: 6px 14px;"></td>
-        <td style="border: 1.5px solid #000; padding: 6px 14px; padding-left: 30px;">5.2 &nbsp; Demerits</td>
-        <td style="border: 1.5px solid #000; padding: 6px 14px; text-align: center;">11</td>
+        <td style="border: 1.5px solid #000; padding: 5px 14px;"></td>
+        <td style="border: 1.5px solid #000; padding: 5px 14px; padding-left: 30px;">5.2 &nbsp; Demerits</td>
+        <td style="border: 1.5px solid #000; padding: 5px 14px; text-align: center;">13</td>
       </tr>
       <tr>
         <td style="border: 1.5px solid #000; padding: 8px 14px; font-weight: bold;">6</td>
         <td style="border: 1.5px solid #000; padding: 8px 14px; font-weight: bold;">Comparison with Existing Work</td>
-        <td style="border: 1.5px solid #000; padding: 8px 14px; text-align: center; font-weight: bold;">12</td>
+        <td style="border: 1.5px solid #000; padding: 8px 14px; text-align: center; font-weight: bold;">14</td>
       </tr>
       <tr>
-        <td style="border: 1.5px solid #000; padding: 6px 14px;"></td>
-        <td style="border: 1.5px solid #000; padding: 6px 14px; padding-left: 30px;">6.1 &nbsp; TradingView</td>
-        <td style="border: 1.5px solid #000; padding: 6px 14px; text-align: center;">12</td>
+        <td style="border: 1.5px solid #000; padding: 5px 14px;"></td>
+        <td style="border: 1.5px solid #000; padding: 5px 14px; padding-left: 30px;">6.1 &nbsp; TradingView</td>
+        <td style="border: 1.5px solid #000; padding: 5px 14px; text-align: center;">14</td>
       </tr>
       <tr>
-        <td style="border: 1.5px solid #000; padding: 6px 14px;"></td>
-        <td style="border: 1.5px solid #000; padding: 6px 14px; padding-left: 30px;">6.2 &nbsp; Tickertape</td>
-        <td style="border: 1.5px solid #000; padding: 6px 14px; text-align: center;">12</td>
+        <td style="border: 1.5px solid #000; padding: 5px 14px;"></td>
+        <td style="border: 1.5px solid #000; padding: 5px 14px; padding-left: 30px;">6.2 &nbsp; Tickertape</td>
+        <td style="border: 1.5px solid #000; padding: 5px 14px; text-align: center;">15</td>
       </tr>
       <tr>
         <td style="border: 1.5px solid #000; padding: 8px 14px; font-weight: bold;">7</td>
         <td style="border: 1.5px solid #000; padding: 8px 14px; font-weight: bold;">Conclusion &amp; Future Scope</td>
-        <td style="border: 1.5px solid #000; padding: 8px 14px; text-align: center; font-weight: bold;">13</td>
+        <td style="border: 1.5px solid #000; padding: 8px 14px; text-align: center; font-weight: bold;">16</td>
       </tr>
       <tr>
-        <td style="border: 1.5px solid #000; padding: 6px 14px;"></td>
-        <td style="border: 1.5px solid #000; padding: 6px 14px; padding-left: 30px;">7.1 &nbsp; Conclusion</td>
-        <td style="border: 1.5px solid #000; padding: 6px 14px; text-align: center;">13</td>
+        <td style="border: 1.5px solid #000; padding: 5px 14px;"></td>
+        <td style="border: 1.5px solid #000; padding: 5px 14px; padding-left: 30px;">7.1 &nbsp; Conclusion</td>
+        <td style="border: 1.5px solid #000; padding: 5px 14px; text-align: center;">16</td>
       </tr>
       <tr>
-        <td style="border: 1.5px solid #000; padding: 6px 14px;"></td>
-        <td style="border: 1.5px solid #000; padding: 6px 14px; padding-left: 30px;">7.2 &nbsp; Future Scope</td>
-        <td style="border: 1.5px solid #000; padding: 6px 14px; text-align: center;">13</td>
+        <td style="border: 1.5px solid #000; padding: 5px 14px;"></td>
+        <td style="border: 1.5px solid #000; padding: 5px 14px; padding-left: 30px;">7.2 &nbsp; Future Scope</td>
+        <td style="border: 1.5px solid #000; padding: 5px 14px; text-align: center;">17</td>
       </tr>
       <tr>
         <td style="border: 1.5px solid #000; padding: 8px 14px; font-weight: bold;"></td>
         <td style="border: 1.5px solid #000; padding: 8px 14px; font-weight: bold;">References</td>
-        <td style="border: 1.5px solid #000; padding: 8px 14px; text-align: center; font-weight: bold;">14</td>
+        <td style="border: 1.5px solid #000; padding: 8px 14px; text-align: center; font-weight: bold;">18</td>
       </tr>
     </tbody>
   </table>
 </div>
 
-<!-- ==================== CHAPTER 1 — INTRODUCTION (PAGE 1) ==================== -->
-<div class="page numbered-page">
+<!-- ==================== CHAPTER 1 (PAGE 1) ==================== -->
+<div class="page">
   <h1>CHAPTER 1<br>INTRODUCTION</h1>
 
   <h2>1.1 Problem Statement</h2>
@@ -496,8 +427,8 @@
   <div class="page-footer">1</div>
 </div>
 
-<!-- ==================== CHAPTER 1 — INTRODUCTION (PAGE 2) ==================== -->
-<div class="page numbered-page">
+<!-- ==================== CHAPTER 1 (PAGE 2) ==================== -->
+<div class="page">
   <h1>CHAPTER 1<br>INTRODUCTION</h1>
 
   <h2>1.2 Objective</h2>
@@ -514,8 +445,8 @@
   <div class="page-footer">2</div>
 </div>
 
-<!-- ==================== CHAPTER 1 — INTRODUCTION (PAGE 3) ==================== -->
-<div class="page numbered-page">
+<!-- ==================== CHAPTER 1 (PAGE 3) ==================== -->
+<div class="page">
   <h1>CHAPTER 1<br>INTRODUCTION</h1>
   
   <h2>1.3 Scope</h2>
@@ -529,8 +460,8 @@
   <div class="page-footer">3</div>
 </div>
 
-<!-- ==================== CHAPTER 2 — SYSTEM ARCHITECTURE (PAGE 3) ==================== -->
-<div class="page numbered-page">
+<!-- ==================== CHAPTER 2 (PAGE 4) ==================== -->
+<div class="page">
   <h1>CHAPTER 2<br>SYSTEM ARCHITECTURE</h1>
 
   <h2>2.1 High-Level Architecture Diagram</h2>
@@ -586,121 +517,135 @@
   <div class="page-footer">4</div>
 </div>
 
-<!-- ==================== CHAPTER 2 — SYSTEM ARCHITECTURE (PAGE 4) ==================== -->
-<div class="page numbered-page">
+<!-- ==================== CHAPTER 2 (PAGE 5) ==================== -->
+<div class="page">
   <h1>CHAPTER 2<br>SYSTEM ARCHITECTURE</h1>
 
   <h2>2.2 Technology Stack</h2>
-  <table>
-    <tr>
-      <th>Layer</th>
-      <th>Technology</th>
-      <th>Purpose</th>
-    </tr>
-    <tr>
-      <td>Frontend</td>
-      <td>React 18, Vite, Recharts</td>
-      <td>User interface, charting, data visualization</td>
-    </tr>
-    <tr>
-      <td>Backend API</td>
-      <td>Python 3.12, Vercel Serverless Functions</td>
-      <td>Data fetching, feature engineering, model evaluation</td>
-    </tr>
-    <tr>
-      <td>ML Model</td>
-      <td>XGBoost (JSON tree format)</td>
-      <td>3-class classification (BUY / HOLD / SELL)</td>
-    </tr>
-    <tr>
-      <td>Sentiment Engine</td>
-      <td>Google Gemini LLM API</td>
-      <td>Real-time news headline sentiment scoring</td>
-    </tr>
-    <tr>
-      <td>Price Data</td>
-      <td>Yahoo Finance (yfinance)</td>
-      <td>Historical and live OHLCV data for NSE stocks</td>
-    </tr>
-    <tr>
-      <td>Macro Data</td>
-      <td>Yahoo Finance (^GSPC, CL=F, INR=X)</td>
-      <td>S&P 500, Crude Oil, USD/INR returns</td>
-    </tr>
-    <tr>
-      <td>Institutional Data</td>
-      <td>Moneycontrol Web Scraper</td>
-      <td>FII/DII net buy/sell flow (display only)</td>
-    </tr>
-    <tr>
-      <td>Deployment</td>
-      <td>Vercel (Hobby Plan)</td>
-      <td>Serverless hosting with CDN edge network</td>
-    </tr>
+  <p class="no-indent">
+    The application's multi-layered serverless implementation relies on the following standard technology configurations:
+  </p>
+  <table style="margin-top: 15px;">
+    <thead>
+      <tr>
+        <th style="width: 20%;">Layer</th>
+        <th style="width: 30%;">Technology</th>
+        <th style="width: 50%;">Purpose</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Frontend</td>
+        <td>React 18, Vite, Recharts</td>
+        <td>User interface, charting, data visualization</td>
+      </tr>
+      <tr>
+        <td>Backend API</td>
+        <td>Python 3.12, Vercel Serverless Functions</td>
+        <td>Data fetching, feature engineering, model evaluation</td>
+      </tr>
+      <tr>
+        <td>ML Model</td>
+        <td>XGBoost (JSON tree format)</td>
+        <td>3-class classification (BUY / HOLD / SELL)</td>
+      </tr>
+      <tr>
+        <td>Sentiment Engine</td>
+        <td>Google Gemini LLM API</td>
+        <td>Real-time news headline sentiment scoring</td>
+      </tr>
+      <tr>
+        <td>Price Data</td>
+        <td>Yahoo Finance (yfinance)</td>
+        <td>Historical and live OHLCV data for NSE stocks</td>
+      </tr>
+      <tr>
+        <td>Macro Data</td>
+        <td>Yahoo Finance (^GSPC, CL=F, INR=X)</td>
+        <td>S&P 500, Crude Oil, USD/INR returns</td>
+      </tr>
+      <tr>
+        <td>Institutional Data</td>
+        <td>Moneycontrol Web Scraper</td>
+        <td>FII/DII net buy/sell flow (display only)</td>
+      </tr>
+      <tr>
+        <td>Deployment</td>
+        <td>Vercel (Hobby Plan)</td>
+        <td>Serverless hosting with CDN edge network</td>
+      </tr>
+    </tbody>
   </table>
+
+  <div class="page-footer">5</div>
+</div>
+
+<!-- ==================== CHAPTER 2 (PAGE 6) ==================== -->
+<div class="page">
+  <h1>CHAPTER 2<br>SYSTEM ARCHITECTURE</h1>
 
   <h2>2.3 Data Flow Workflow</h2>
   <p>
     When a user submits a stock ticker for analysis, the system executes the following workflow sequentially:
   </p>
   <ol>
-    <li><strong>Ticker Resolution:</strong> The user's input query is matched against a supported stock dictionary to resolve the correct NSE ticker symbol (e.g., "Reliance" → "RELIANCE.NS").</li>
-    <li><strong>Concurrent Data Fetching:</strong> The API backend dispatches parallel requests using Python's <code>concurrent.futures.ThreadPoolExecutor</code> to simultaneously fetch: (a) 1-year historical OHLCV price data from Yahoo Finance, (b) live news headlines and Gemini-based sentiment analysis, (c) 10-day FII/DII net flow data from Moneycontrol, and (d) global macro indicator returns (S&P 500, Crude Oil, USD/INR).</li>
-    <li><strong>Technical Indicator Computation:</strong> From the raw price data, the system computes RSI (14-day), MACD histogram, MACD crossover signal, 50-day and 200-day simple moving averages, golden cross detection, and volume ratio.</li>
-    <li><strong>Feature Vector Construction:</strong> A 19-dimensional feature vector is assembled by combining the computed technical indicators with sentiment scores, macro returns, and momentum window features (RSI slope, 5-day and 20-day price changes, 10-day volatility).</li>
-    <li><strong>Model Evaluation:</strong> The feature vector is passed through a pure-Python XGBoost JSON tree evaluator that walks the decision tree structure to produce class probabilities for BUY, HOLD, and SELL.</li>
-    <li><strong>Verdict Generation:</strong> The class with the highest probability is selected as the verdict, subject to a 55% minimum confidence threshold. If no class meets this threshold, a HOLD verdict is issued.</li>
-    <li><strong>Response Rendering:</strong> The API returns a structured JSON response containing the verdict, probabilities, all computed indicators, sentiment summary, institutional flow data, fundamental ratios, and advisory notes. The React frontend renders this data across the dashboard cards.</li>
+    <li><strong>Ticker Resolution:</strong> The user's query is matched against a supported stock dictionary to resolve the correct NSE ticker symbol (e.g., "Reliance" → "RELIANCE.NS").</li>
+    <li><strong>Concurrent Data Fetching:</strong> The API backend dispatches parallel requests using Python's <code>ThreadPoolExecutor</code> to fetch: (a) 1-year price data, (b) live headlines, (c) FII/DII net flow, and (d) global macro returns.</li>
+    <li><strong>Technical Indicator Computation:</strong> The system computes RSI (14-day), MACD histogram, MACD crossover, moving averages (50-day and 200-day), golden cross, and volume ratios.</li>
+    <li><strong>Feature Vector Construction:</strong> A 19-dimensional feature vector is compiled from technical indicators, Gemini sentiment scores, macro returns, and momentum window metrics.</li>
+    <li><strong>Model Evaluation:</strong> The feature vector is passed to a custom Python XGBoost JSON tree evaluator that walks tree nodes at runtime to compute softmax class probabilities.</li>
+    <li><strong>Verdict Generation:</strong> The class with the highest probability is selected as the verdict, subject to a 55% minimum confidence threshold (defaulting to HOLD if low confidence).</li>
+    <li><strong>Response Rendering:</strong> The API returns a structured JSON payload containing the verdict, probabilities, metrics, and advisory notes, which the React dashboard renders immediately.</li>
   </ol>
-
-  <div class="page-footer">5</div>
-</div>
-
-<!-- ==================== CHAPTER 3 — FEATURE ENGINEERING & ML MODEL (PAGE 5) ==================== -->
-<div class="page numbered-page">
-  <h1>CHAPTER 3<br>FEATURE ENGINEERING &amp; ML MODEL</h1>
-
-  <h2>3.1 The 19-Feature Vector</h2>
-  <p>
-    The XGBoost model consumes a carefully engineered 19-dimensional feature vector, organized across four distinct signal domains. Each feature is computed from real-time market data during inference and from historical data during training:
-  </p>
-
-  <table>
-    <tr>
-      <th>Signal Domain</th>
-      <th>Feature Name</th>
-      <th>Description</th>
-    </tr>
-    <tr><td rowspan="10">Technical Indicators</td><td>RSI</td><td>14-day Relative Strength Index (0–100)</td></tr>
-    <tr><td>MACD_Hist</td><td>MACD histogram value (signal line difference)</td></tr>
-    <tr><td>MACD_Crossover</td><td>Binary flag: MACD line crossed signal line</td></tr>
-    <tr><td>Price_Above_MA50</td><td>Binary: current price above 50-day SMA</td></tr>
-    <tr><td>Price_Above_MA200</td><td>Binary: current price above 200-day SMA</td></tr>
-    <tr><td>Golden_Cross</td><td>Binary: 50-day SMA crossed above 200-day SMA</td></tr>
-    <tr><td>Volume_Ratio</td><td>Current volume / 20-day average volume</td></tr>
-    <tr><td>Multi_Timeframe_Alignment</td><td>Composite alignment score of trend indicators</td></tr>
-    <tr><td>RSI_Slope</td><td>RSI momentum direction over 5 days</td></tr>
-    <tr><td>Volatility_10d</td><td>10-day rolling standard deviation of returns</td></tr>
-    <tr><td rowspan="4">News Sentiment</td><td>Sentiment_Score</td><td>Aggregated headline sentiment (−1 to +1)</td></tr>
-    <tr><td>Positive_Headlines</td><td>Scaled count of positive news articles</td></tr>
-    <tr><td>Negative_Headlines</td><td>Scaled count of negative news articles</td></tr>
-    <tr><td>Sentiment_Available</td><td>Binary flag: sentiment data present or not</td></tr>
-    <tr><td rowspan="3">Global Macro</td><td>SP500_Return</td><td>S&P 500 index daily return</td></tr>
-    <tr><td>Crude_Return</td><td>Crude oil daily return</td></tr>
-    <tr><td>USD_INR_Return</td><td>USD to INR exchange rate daily return</td></tr>
-    <tr><td rowspan="2">Momentum Windows</td><td>Price_Pct_5d</td><td>Price percentage change over 5 trading days</td></tr>
-    <tr><td>Price_Pct_20d</td><td>Price percentage change over 20 trading days</td></tr>
-  </table>
-
-  <p class="no-indent" style="font-size: 11pt; text-align: center; color: #555;">
-    <em>Table 3.1: Complete 19-Feature Vector used by the XGBoost Model</em>
-  </p>
 
   <div class="page-footer">6</div>
 </div>
 
-<!-- ==================== CHAPTER 3 — FEATURE ENGINEERING & ML MODEL (PAGE 6) ==================== -->
-<div class="page numbered-page">
+<!-- ==================== CHAPTER 3 (PAGE 7) ==================== -->
+<div class="page">
+  <h1>CHAPTER 3<br>FEATURE ENGINEERING &amp; ML MODEL</h1>
+
+  <h2>3.1 The 19-Feature Vector</h2>
+  <p class="no-indent">
+    The model processes a 19-dimensional feature vector containing indicators from technical, sentiment, macro, and momentum domains:
+  </p>
+
+  <table style="font-size: 10pt; margin-top: 10px;">
+    <thead>
+      <tr>
+        <th>Signal Domain</th>
+        <th>Feature Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td rowspan="10" style="font-weight: bold;">Technical Indicators</td><td>RSI</td><td>14-day Relative Strength Index (0–100)</td></tr>
+      <tr><td>MACD_Hist</td><td>MACD histogram value (signal line difference)</td></tr>
+      <tr><td>MACD_Crossover</td><td>Binary flag: MACD line crossed signal line</td></tr>
+      <tr><td>Price_Above_MA50</td><td>Binary: current price above 50-day SMA</td></tr>
+      <tr><td>Price_Above_MA200</td><td>Binary: current price above 200-day SMA</td></tr>
+      <tr><td>Golden_Cross</td><td>Binary: 50-day SMA crossed above 200-day SMA</td></tr>
+      <tr><td>Volume_Ratio</td><td>Current volume / 20-day average volume</td></tr>
+      <tr><td>Multi_Timeframe_Alignment</td><td>Composite alignment score of trend indicators</td></tr>
+      <tr><td>RSI_Slope</td><td>RSI momentum direction over 5 days</td></tr>
+      <tr><td>Volatility_10d</td><td>10-day rolling standard deviation of returns</td></tr>
+      <tr><td rowspan="4" style="font-weight: bold;">News Sentiment</td><td>Sentiment_Score</td><td>Aggregated headline sentiment (−1 to +1)</td></tr>
+      <tr><td>Positive_Headlines</td><td>Scaled count of positive news articles</td></tr>
+      <tr><td>Negative_Headlines</td><td>Scaled count of negative news articles</td></tr>
+      <tr><td>Sentiment_Available</td><td>Binary flag: sentiment data present or not</td></tr>
+      <tr><td rowspan="3" style="font-weight: bold;">Global Macro</td><td>SP500_Return</td><td>S&P 500 index daily return</td></tr>
+      <tr><td>Crude_Return</td><td>Crude oil daily return</td></tr>
+      <tr><td>USD_INR_Return</td><td>USD to INR exchange rate daily return</td></tr>
+      <tr><td rowspan="2" style="font-weight: bold;">Momentum Windows</td><td>Price_Pct_5d</td><td>Price percentage change over 5 trading days</td></tr>
+      <tr><td>Price_Pct_20d</td><td>Price percentage change over 20 trading days</td></tr>
+    </tbody>
+  </table>
+
+  <div class="page-footer">7</div>
+</div>
+
+<!-- ==================== CHAPTER 3 (PAGE 8) ==================== -->
+<div class="page">
   <h1>CHAPTER 3<br>FEATURE ENGINEERING &amp; ML MODEL</h1>
 
   <h2>3.2 XGBoost Classification</h2>
@@ -714,52 +659,62 @@
     A minimum confidence threshold of 55% is enforced: if no class probability exceeds this threshold, the system defaults to a HOLD verdict to avoid providing low-confidence directional advice.
   </p>
 
+  <div class="page-footer">8</div>
+</div>
+
+<!-- ==================== CHAPTER 3 (PAGE 9) ==================== -->
+<div class="page">
+  <h1>CHAPTER 3<br>FEATURE ENGINEERING &amp; ML MODEL</h1>
+
   <h2>3.3 10-Day Signal Trend Tracker</h2>
   <p>
     The system includes a 10-day historical signal trend tracker that visualizes how the advisory verdict has evolved over the past ten trading days. For each historical day, the system slices the price data up to that day only (preventing future data leakage), recomputes all 19 features using only information available on that date, evaluates the XGBoost model, and records the resulting verdict and confidence score. This produces a time-series trend line displayed as an interactive Recharts area chart on the dashboard, with a pulsating marker on the most recent day's data point.
   </p>
+  <p>
+    By evaluating the 19 features independently for each of the past ten trading days, the tracker allows the user to see if a stock's bullish signal is strengthening (e.g., transitioning from a low-confidence HOLD to a high-confidence BUY) or weakening. This trend context prevents retail investors from executing trades based on temporary noise or minor, single-day spikes.
+  </p>
 
-  <div class="page-footer">7</div>
+  <div class="page-footer">9</div>
 </div>
 
-<!-- ==================== CHAPTER 4 — KEY FEATURES & SCREENSHOTS (PAGE 7) ==================== -->
-<div class="page numbered-page">
+<!-- ==================== CHAPTER 4 (PAGE 10) ==================== -->
+<div class="page">
   <h1>CHAPTER 4<br>KEY FEATURES &amp; SCREENSHOTS</h1>
 
   <p>
     This chapter presents the key features of the Multi-Signal Stock Advisory System through screenshots of the live production deployment. The system is accessible at the deployed Vercel URL and provides a comprehensive dashboard-style interface.
   </p>
 
-  <h2>4.1 Dashboard Overview</h2>
-  <div style="height: 250px; margin: 15px 0;"></div>
+  <h2 style="margin-top: 15px;">4.1 Dashboard Overview</h2>
+  <div style="height: 200px; margin: 10px 0;"></div>
 
   <h2>4.2 Signal Summary Cards</h2>
-  <div style="height: 250px; margin: 15px 0;"></div>
+  <div style="height: 200px; margin: 10px 0;"></div>
 
   <h2>4.3 10-Day Trend Chart &amp; Technical Details</h2>
-  <div style="height: 250px; margin: 15px 0;"></div>
+  <div style="height: 200px; margin: 10px 0;"></div>
 
-  <div class="page-footer">8</div>
+  <div class="page-footer">10</div>
 </div>
 
-<!-- ==================== CHAPTER 4 — KEY FEATURES & SCREENSHOTS (PAGE 8) ==================== -->
-<div class="page numbered-page">
+<!-- ==================== CHAPTER 4 (PAGE 11) ==================== -->
+<div class="page">
   <h1>CHAPTER 4<br>KEY FEATURES &amp; SCREENSHOTS</h1>
 
-  <h2>4.4 Side-by-Side Comparison Mode</h2>
-  <div style="height: 250px; margin: 15px 0;"></div>
+  <h2 style="margin-top: 15px;">4.4 Side-by-Side Comparison Mode</h2>
+  <div style="height: 200px; margin: 10px 0;"></div>
 
   <h2>4.5 Strategy Backtesting</h2>
-  <div style="height: 250px; margin: 15px 0;"></div>
+  <div style="height: 200px; margin: 10px 0;"></div>
 
   <h2>4.6 Terminal Chatbot Interface</h2>
-  <div style="height: 250px; margin: 15px 0;"></div>
+  <div style="height: 200px; margin: 10px 0;"></div>
 
-  <div class="page-footer">9</div>
+  <div class="page-footer">11</div>
 </div>
 
-<!-- ==================== CHAPTER 5 — MERITS AND DEMERITS (PAGE 9) ==================== -->
-<div class="page numbered-page">
+<!-- ==================== CHAPTER 5 (PAGE 12) ==================== -->
+<div class="page">
   <h1>CHAPTER 5<br>MERITS AND DEMERITS</h1>
 
   <h2>5.1 Merits</h2>
@@ -772,11 +727,11 @@
     <li><strong>Free and Accessible:</strong> The entire system is deployed on Vercel's free tier and requires no installation, registration, or subscription, making professional-grade stock analysis accessible to any retail investor with a web browser.</li>
   </ol>
 
-  <div class="page-footer">10</div>
+  <div class="page-footer">12</div>
 </div>
 
-<!-- ==================== CHAPTER 5 — MERITS AND DEMERITS (PAGE 10) ==================== -->
-<div class="page numbered-page">
+<!-- ==================== CHAPTER 5 (PAGE 13) ==================== -->
+<div class="page">
   <h1>CHAPTER 5<br>MERITS AND DEMERITS</h1>
 
   <h2>5.2 Demerits</h2>
@@ -788,11 +743,11 @@
     <li><strong>Serverless Timeout Constraints:</strong> Vercel's free tier imposes a 60-second function execution limit. During periods of high API latency from upstream data providers (Yahoo Finance, Gemini), the analysis may occasionally time out.</li>
   </ol>
 
-  <div class="page-footer">11</div>
+  <div class="page-footer">13</div>
 </div>
 
-<!-- ==================== CHAPTER 6 — COMPARISON WITH EXISTING WORK (PAGE 11) ==================== -->
-<div class="page numbered-page">
+<!-- ==================== CHAPTER 6 (PAGE 14) ==================== -->
+<div class="page">
   <h1>CHAPTER 6<br>COMPARISON WITH EXISTING WORK</h1>
 
   <p>
@@ -813,6 +768,13 @@
     Our Improvement: The proposed system automates chart interpretation through an XGBoost machine learning model, combines it with real-time sentiment and macro signals, and delivers a unified advisory verdict — all accessible for free without any subscription.
   </p>
 
+  <div class="page-footer">14</div>
+</div>
+
+<!-- ==================== CHAPTER 6 (PAGE 15) ==================== -->
+<div class="page">
+  <h1>CHAPTER 6<br>COMPARISON WITH EXISTING WORK</h1>
+
   <h2>6.2 Tickertape</h2>
   <p class="no-indent">
     Tickertape is an Indian financial data platform focused on fundamental analysis and stock screening. The following differences are noted:
@@ -832,11 +794,11 @@
     Existing platforms such as TradingView and Tickertape provide valuable but isolated analytical tools — either technical charting or fundamental screening. The Multi-Signal Stock Advisory System differentiates itself by fusing three signal domains into a unified machine-learning model that generates real-time, actionable advisory verdicts. This end-to-end integration, combined with free accessibility and serverless deployment, represents a distinct contribution to the Indian retail investment ecosystem.
   </p>
 
-  <div class="page-footer">12</div>
+  <div class="page-footer">15</div>
 </div>
 
-<!-- ==================== CHAPTER 7 — CONCLUSION & FUTURE SCOPE (PAGE 12) ==================== -->
-<div class="page numbered-page">
+<!-- ==================== CHAPTER 7 (PAGE 16) ==================== -->
+<div class="page">
   <h1>CHAPTER 7<br>CONCLUSION &amp; FUTURE SCOPE</h1>
 
   <h2>7.1 Conclusion</h2>
@@ -849,6 +811,13 @@
   <p>
     The project demonstrates that a multi-signal fusion approach to stock advisory can be implemented as a practical, freely accessible tool for the Indian retail investment community, bridging the gap between sophisticated institutional analysis and individual investor capabilities.
   </p>
+
+  <div class="page-footer">16</div>
+</div>
+
+<!-- ==================== CHAPTER 7 (PAGE 17) ==================== -->
+<div class="page">
+  <h1>CHAPTER 7<br>CONCLUSION &amp; FUTURE SCOPE</h1>
 
   <h2>7.2 Future Scope</h2>
   <p>
@@ -866,11 +835,11 @@
     </li>
   </ol>
 
-  <div class="page-footer">13</div>
+  <div class="page-footer">17</div>
 </div>
 
-<!-- ==================== REFERENCES (PAGE 13) ==================== -->
-<div class="page numbered-page">
+<!-- ==================== REFERENCES (PAGE 18) ==================== -->
+<div class="page">
   <h1>REFERENCES</h1>
   <br>
 
@@ -910,7 +879,7 @@
     <a href="https://link.springer.com/article/10.1007/s10462-019-09754-z" target="_blank">https://link.springer.com/article/10.1007/s10462-019-09754-z</a>
   </p>
 
-  <div class="page-footer">14</div>
+  <div class="page-footer">18</div>
 </div>
 
 </body>
