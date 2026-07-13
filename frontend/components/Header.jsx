@@ -40,6 +40,20 @@ export default function Header() {
       }}>
         Leveraging <span style={{ color: '#6EE7B7', fontWeight: 500 }}>Technical Charts</span>, <span style={{ color: '#6EE7B7', fontWeight: 500 }}>News Sentiment</span>, <span style={{ color: '#6EE7B7', fontWeight: 500 }}>Institutional Flows</span>, and <span style={{ color: '#6EE7B7', fontWeight: 500 }}>Fundamentals</span>
       </p>
+      <div style={{
+        marginTop: '16px',
+        padding: '10px 14px',
+        borderTop: '1px solid rgba(255, 255, 255, 0.05)',
+        fontSize: '13px',
+        fontStyle: 'italic',
+        color: '#94A3B8',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '6px'
+      }}>
+        💡 <span style={{ color: 'var(--warning-amber)' }}>"Investment contains risk, so analyze it and start investing."</span>
+      </div>
     </div>
   );
 }
