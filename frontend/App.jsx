@@ -11,7 +11,7 @@ import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'rec
 const LOADING_STEPS = [
   "Analyzing technical charts & indicators...",
   "Fetching latest news sentiment...",
-  "Calculating institutional flows (FII/DII)...",
+  "Fetching institutional flows (FII/DII)...",
   "Running predictive models...",
   "Generating AI strategic explanation..."
 ];
