@@ -3,8 +3,8 @@ import React, { useState } from 'react';
 const SUPPORTED_LIST = [
   "tcs", "reliance", "wipro", "infosys", "sbi", "sbin", "hdfc", "hdfcbank",
   "adani", "adaniports", "tata steel", "tatasteel", "tata power", "tatapower",
-  "maruti", "maruti suzuki", "l&t", "lt", "airtel", "bhartiartl", "tmpv",
-  "tmcv", "titan", "wipro", "hcltech", "techm", "itc"
+  "maruti", "maruti suzuki", "l&t", "lt", "airtel", "bhartiartl", "tata motors",
+  "tatamotors", "tmpv", "tmcv", "titan", "wipro", "hcltech", "techm", "itc"
 ];
 
 export default function Sidebar({ activeMode, setActiveMode }) {
