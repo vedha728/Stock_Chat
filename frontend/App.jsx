@@ -160,15 +160,23 @@ export default function App() {
     let interval;
     if (loading) {
       setLoadingStep(0);
-      const stepsCount = isNewsOnly ? NEWS_LOADING_STEPS.length : LOADING_STEPS.length;
+      let stepsCount = LOADING_STEPS.length;
+      if (activeMode === "compare") {
+        stepsCount = COMPARE_LOADING_STEPS.length;
+      } else if (activeMode === "backtest") {
+        stepsCount = BACKTEST_LOADING_STEPS.length;
+      } else if (isNewsOnly) {
+        stepsCount = NEWS_LOADING_STEPS.length;
+      }
+
       interval = setInterval(() => {
-        setLoadingStep((prev) => (prev + 1) % stepsCount);
+        setLoadingStep((prev) => (prev < stepsCount - 1 ? prev + 1 : prev));
       }, 2000);
     } else {
       setLoadingStep(0);
     }
     return () => clearInterval(interval);
-  }, [loading, isNewsOnly]);
+  }, [loading, isNewsOnly, activeMode]);
   
   // Data states
   const [analysisData, setAnalysisData] = useState(null);
@@ -273,7 +281,7 @@ export default function App() {
   };
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh' }}>
+    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
       {/* Sidebar navigation */}
       <Sidebar activeMode={activeMode} setActiveMode={(mode) => {
         setActiveMode(mode);
@@ -286,7 +294,7 @@ export default function App() {
       }} />
 
       {/* Main Content Area */}
-      <div style={{ flex: 1, padding: '30px 40px', overflowY: 'auto' }}>
+      <div style={{ flex: 1, padding: '30px 40px', overflowY: 'auto', height: '100%' }}>
         <Header />
 
 

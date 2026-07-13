@@ -39,12 +39,20 @@ export default function SignalsSummary({ technicals, sentiment, institutional })
   let smartClass = "card-warning";
   let smartIcon = "💼";
   if (fii > 0 && dii > 0) {
-    smartText = "Institutions buying heavily";
+    smartText = "Big investors buying heavily";
     smartClass = "card-success";
     smartIcon = "💼";
   } else if (fii < 0 && dii < 0) {
-    smartText = "Institutions pulling money out";
+    smartText = "Big investors pulling money out";
     smartClass = "card-danger";
+    smartIcon = "💼";
+  } else if (fii < 0 && dii > 0) {
+    smartText = "Foreign investors out, Indian investors buying";
+    smartClass = "card-warning";
+    smartIcon = "💼";
+  } else {
+    smartText = "Foreign investors buying, Indian investors reducing";
+    smartClass = "card-success";
     smartIcon = "💼";
   }
 

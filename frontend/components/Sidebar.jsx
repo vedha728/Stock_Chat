@@ -3,8 +3,8 @@ import React, { useState } from 'react';
 const SUPPORTED_LIST = [
   "tcs", "reliance", "wipro", "infosys", "sbi", "sbin", "hdfc", "hdfcbank",
   "adani", "adaniports", "tata steel", "tatasteel", "tata power", "tatapower",
-  "maruti", "maruti suzuki", "l&t", "lt", "airtel", "bhartiartl", "tata motors",
-  "tatamotors", "titan", "wipro", "hcltech", "techm", "itc"
+  "maruti", "maruti suzuki", "l&t", "lt", "airtel", "bhartiartl", "tmpv",
+  "tmcv", "titan", "wipro", "hcltech", "techm", "itc"
 ];
 
 export default function Sidebar({ activeMode, setActiveMode }) {
@@ -49,7 +49,9 @@ export default function Sidebar({ activeMode, setActiveMode }) {
       display: 'flex',
       flexDirection: 'column',
       gap: '24px',
-      flexShrink: 0
+      flexShrink: 0,
+      height: '100%',
+      overflowY: 'auto'
     }}>
       {/* Title */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -151,7 +153,7 @@ export default function Sidebar({ activeMode, setActiveMode }) {
         )}
         <div style={{ marginTop: '12px', fontSize: '11px', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
           <strong>Quick Examples:</strong><br />
-          TCS, Reliance, Wipro, Infosys, SBI, HDFC Bank, Adani Ports, Tata Steel, Tata Power, Maruti Suzuki.
+          TCS, Reliance, Wipro, Infosys, SBI, HDFC Bank, Adani Ports, Tata Steel, Tata Power, Maruti Suzuki, TMPV, TMCV.
         </div>
       </div>
     </div>
