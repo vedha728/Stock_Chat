@@ -944,6 +944,7 @@ export default function App() {
                   onChange={(e) => setBacktestQuery(e.target.value)}
                   onKeyDown={(e) => handleKeyDown(e, fetchBacktest, backtestQuery)}
                   placeholder="e.g. TCS"
+                  className="search-input"
                 />
               </div>
               
