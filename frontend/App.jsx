@@ -41,6 +41,13 @@ const BACKTEST_LOADING_STEPS = [
   "Finalizing performance report metrics..."
 ];
 
+const LEARN_LOADING_STEPS = [
+  "Consulting AI financial dictionary...",
+  "Synthesizing financial glossary definition...",
+  "Formatting beginner-friendly explanation...",
+  "Adding practical market examples..."
+];
+
 const renderCustomLiveDot = (props) => {
   const { cx, cy, payload, stroke } = props;
   if (payload.is_live) {
@@ -165,6 +172,8 @@ export default function App() {
         stepsCount = COMPARE_LOADING_STEPS.length;
       } else if (activeMode === "backtest") {
         stepsCount = BACKTEST_LOADING_STEPS.length;
+      } else if (activeMode === "learn") {
+        stepsCount = LEARN_LOADING_STEPS.length;
       } else if (isNewsOnly) {
         stepsCount = NEWS_LOADING_STEPS.length;
       }
@@ -1030,6 +1039,19 @@ export default function App() {
                   className="search-input"
                 />
               </div>
+
+              {/* Inline loading progress */}
+              {loading && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '16px', alignItems: 'flex-start', textAlign: 'left' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#E2E8F0', fontSize: '13px', fontWeight: 500 }}>
+                    <div className="spinner-mini"></div>
+                    <span>{LEARN_LOADING_STEPS[loadingStep % LEARN_LOADING_STEPS.length]}</span>
+                  </div>
+                  <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontStyle: 'italic', paddingLeft: '28px' }}>
+                    Please wait a few seconds while we consult the AI financial glossary...
+                  </span>
+                </div>
+              )}
             </div>
 
             {learnData && !loading && (
