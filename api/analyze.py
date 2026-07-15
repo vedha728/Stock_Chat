@@ -22,7 +22,7 @@ from data_collector import (
     TICKER_NAME_MAP
 )
 from indicators import calculate_technical_indicators
-from sentiment import analyze_news_sentiment
+from sentiment import analyze_news_sentiment, classify_headline_sentiment
 from institutional import fetch_latest_fii_dii, analyze_institutional_signals
 from feature_engineering import prepare_inference_row
 from predict import predict_stock_action
@@ -271,7 +271,8 @@ class handler(BaseHTTPRequestHandler):
                 "sentiment": {
                     "score": clean_nan(sent_score),
                     "pos_count": int(pos_count),
-                    "neg_count": int(neg_count)
+                    "neg_count": int(neg_count),
+                    "neu_count": int(max(0, len(titles_list) - pos_count - neg_count))
                 },
                 "institutional_flow": {
                     "FII_10d_Net": clean_nan(fii_dii_summary.get("FII_10d_Net", 0.0)),
@@ -290,7 +291,8 @@ class handler(BaseHTTPRequestHandler):
                         "title": h.get("title", ""),
                         "url": h.get("url", ""),
                         "source": h.get("source", ""),
-                        "description": h.get("description", "")
+                        "description": h.get("description", ""),
+                        "sentiment": classify_headline_sentiment(h.get("title", ""))
                     }
                     for h in headlines[:10]
                 ]

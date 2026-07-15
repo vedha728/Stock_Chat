@@ -108,7 +108,16 @@ export default function SignalsSummary({ technicals, sentiment, institutional })
           <span style={{ fontSize: '18px' }}>{newsIcon}</span>
           <div>
             <strong style={{ opacity: 0.7, fontSize: '11px', textTransform: 'uppercase', display: 'block', letterSpacing: '0.5px' }}>News Sentiment</strong>
-            <span>{newsText}</span>
+            <span style={{ display: 'block' }}>{newsText}</span>
+            <span style={{ 
+              fontSize: '11px', 
+              opacity: 0.8, 
+              marginTop: '4px', 
+              display: 'block',
+              fontWeight: 500
+            }}>
+              ({sentiment.pos_count || 0} Positive | {sentiment.neu_count !== undefined ? sentiment.neu_count : 0} Neutral | {sentiment.neg_count || 0} Negative)
+            </span>
           </div>
         </div>
 

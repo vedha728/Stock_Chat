@@ -478,11 +478,26 @@ export default function App() {
                                   fontSize: '14px', 
                                   fontWeight: 600, 
                                   textDecoration: 'none',
-                                  display: 'block',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  flexWrap: 'wrap',
+                                  gap: '8px',
                                   marginBottom: '4px'
                                 }}
                               >
-                                {idx + 1}. {news.title}
+                                <span>{idx + 1}. {news.title}</span>
+                                {news.sentiment && (
+                                  <span style={{ 
+                                    fontSize: '10px', 
+                                    fontWeight: 700, 
+                                    padding: '2px 6px', 
+                                    borderRadius: '4px',
+                                    backgroundColor: news.sentiment === 'Positive' ? 'rgba(16, 185, 129, 0.15)' : news.sentiment === 'Negative' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(148, 163, 184, 0.15)',
+                                    color: news.sentiment === 'Positive' ? '#34D399' : news.sentiment === 'Negative' ? '#F87171' : '#94A3B8'
+                                  }}>
+                                    {news.sentiment}
+                                  </span>
+                                )}
                               </a>
                               <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Source: {news.source}</span>
                               <p style={{ fontSize: '12px', color: '#94A3B8', marginTop: '6px', fontStyle: 'italic', lineHeight: '1.4' }}>
@@ -704,11 +719,26 @@ export default function App() {
                                       fontSize: '14px', 
                                       fontWeight: 600, 
                                       textDecoration: 'none',
-                                      display: 'block',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      flexWrap: 'wrap',
+                                      gap: '8px',
                                       marginBottom: '4px'
                                     }}
                                   >
-                                    {idx + 1}. {news.title}
+                                    <span>{idx + 1}. {news.title}</span>
+                                    {news.sentiment && (
+                                      <span style={{ 
+                                        fontSize: '10px', 
+                                        fontWeight: 700, 
+                                        padding: '2px 6px', 
+                                        borderRadius: '4px',
+                                        backgroundColor: news.sentiment === 'Positive' ? 'rgba(16, 185, 129, 0.15)' : news.sentiment === 'Negative' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(148, 163, 184, 0.15)',
+                                        color: news.sentiment === 'Positive' ? '#34D399' : news.sentiment === 'Negative' ? '#F87171' : '#94A3B8'
+                                      }}>
+                                        {news.sentiment}
+                                      </span>
+                                    )}
                                   </a>
                                   <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Source: {news.source}</span>
                                   <p style={{ fontSize: '12px', color: '#94A3B8', marginTop: '6px', fontStyle: 'italic', lineHeight: '1.4' }}>

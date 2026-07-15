@@ -77,6 +77,26 @@ BEARISH_WORDS = {
 }
 
 
+def classify_headline_sentiment(title: str) -> str:
+    """
+    Classifies a single headline as 'Positive', 'Negative', or 'Neutral'
+    using the core dictionary-based sentiment lists.
+    """
+    if not title:
+        return "Neutral"
+    # Clean and split words
+    words = set(title.lower().replace(",", "").replace(".", "").replace("'", "").replace('"', "").split())
+    pos_hits = len(words & BULLISH_WORDS)
+    neg_hits = len(words & BEARISH_WORDS)
+    
+    if pos_hits > neg_hits:
+        return "Positive"
+    elif neg_hits > pos_hits:
+        return "Negative"
+    else:
+        return "Neutral"
+
+
 def fallback_sentiment_analysis(headlines: list[str]) -> tuple[float, int, int]:
     """
     Fast dictionary-based sentiment analyzer. Used when FinBERT
