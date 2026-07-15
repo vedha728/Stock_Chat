@@ -35,23 +35,23 @@ export default function SignalsSummary({ technicals, sentiment, institutional })
   // 3. FII/DII Outlook
   const fii = institutional.FII_10d_Net || 0;
   const dii = institutional.DII_10d_Net || 0;
-  let smartText = "Diverging institutional flow";
+  let smartText = "Mixed buying and selling from big institutions";
   let smartClass = "card-warning";
   let smartIcon = "💼";
   if (fii > 0 && dii > 0) {
-    smartText = "Big investors buying heavily";
+    smartText = "Both Foreign & Indian institutions are buying heavily";
     smartClass = "card-success";
     smartIcon = "💼";
   } else if (fii < 0 && dii < 0) {
-    smartText = "Big investors pulling money out";
+    smartText = "Both Foreign & Indian institutions are selling heavily";
     smartClass = "card-danger";
     smartIcon = "💼";
   } else if (fii < 0 && dii > 0) {
-    smartText = "Foreign investors out, Indian investors buying";
+    smartText = "Indian institutions are buying, while Foreign investors are selling";
     smartClass = "card-warning";
     smartIcon = "💼";
   } else {
-    smartText = "Foreign investors buying, Indian investors reducing";
+    smartText = "Foreign investors are buying, while Indian institutions are selling";
     smartClass = "card-success";
     smartIcon = "💼";
   }
@@ -124,7 +124,7 @@ export default function SignalsSummary({ technicals, sentiment, institutional })
         <div style={getStyle(smartClass)}>
           <span style={{ fontSize: '18px' }}>{smartIcon}</span>
           <div>
-            <strong style={{ opacity: 0.7, fontSize: '11px', textTransform: 'uppercase', display: 'block', letterSpacing: '0.5px' }}>Smart Money</strong>
+            <strong style={{ opacity: 0.7, fontSize: '11px', textTransform: 'uppercase', display: 'block', letterSpacing: '0.5px' }}>Big Investors (FII / DII)</strong>
             <span>{smartText}</span>
           </div>
         </div>
