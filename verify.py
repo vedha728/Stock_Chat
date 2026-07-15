@@ -179,7 +179,7 @@ try:
         "Tata Motors profit jumps 222 percent beating estimates",
         "Wipro stock plunges after weak revenue guidance",
     ]
-    score, pos, neg = analyze_news_sentiment(test_heads)
+    score, pos, neg, _ = analyze_news_sentiment(test_heads)
     print(f"  {PASS} FinBERT score={score:.2f} | pos={pos} | neg={neg}")
     results.append(("Local FinBERT", True))
 except Exception as e:

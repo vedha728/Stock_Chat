@@ -912,7 +912,7 @@ def main_loop(verbose: bool = False):
                         try:
                             if headlines:
                                 titles_list = [h["title"] for h in headlines]
-                                sent_score, pos_count, neg_count = analyze_news_sentiment(titles_list)
+                                sent_score, pos_count, neg_count, _ = analyze_news_sentiment(titles_list)
                                 sentiment_summary = (sent_score, pos_count, neg_count, 1)
                             else:
                                 sentiment_summary = (0.0, 0, 0, 0)
@@ -1023,7 +1023,7 @@ def main_loop(verbose: bool = False):
                             
                             fundamentals = fetch_fundamentals(ticker)
                             titles_list = [h["title"] for h in headlines]
-                            sent_score, pos_count, neg_count = analyze_news_sentiment(titles_list)
+                            sent_score, pos_count, neg_count, _ = analyze_news_sentiment(titles_list)
                             sent_avail = 1 if headlines else 0
                             sentiment_summary = (sent_score, pos_count, neg_count, sent_avail)
                             

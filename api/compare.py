@@ -89,7 +89,7 @@ class handler(BaseHTTPRequestHandler):
                 try:
                     headlines = fetch_news_headlines(ticker, company_name)
                     titles_list = [h["title"] for h in headlines]
-                    sent_score, pos, neg = analyze_news_sentiment(titles_list)
+                    sent_score, pos, neg, _ = analyze_news_sentiment(titles_list)
                     sent_avail = 1 if headlines else 0
                 except Exception:
                     sent_score, pos, neg, sent_avail = 0.0, 0, 0, 0

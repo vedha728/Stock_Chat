@@ -136,15 +136,18 @@ class handler(BaseHTTPRequestHandler):
                 try:
                     headlines = futures["news"].result() if futures["news"] in done else None
                     if headlines:
+                        headlines = headlines[:10]  # Slice to top 10 first to match what is displayed
                         titles_list = [h["title"] for h in headlines]
-                        sent_score, pos_count, neg_count = analyze_news_sentiment(titles_list)
+                        sent_score, pos_count, neg_count, sentiment_classes = analyze_news_sentiment(titles_list)
                         sentiment_summary = (sent_score, pos_count, neg_count, 1)
                     else:
                         sentiment_summary = (0.0, 0, 0, 0)
                         sent_score, pos_count, neg_count = 0.0, 0, 0
+                        sentiment_classes = []
                 except Exception:
                     sentiment_summary = (0.0, 0, 0, 0)
                     sent_score, pos_count, neg_count = 0.0, 0, 0
+                    sentiment_classes = []
                     headlines = []
 
                 # 4. Resolve Institutional Flow (FII/DII)
@@ -292,9 +295,9 @@ class handler(BaseHTTPRequestHandler):
                         "url": h.get("url", ""),
                         "source": h.get("source", ""),
                         "description": h.get("description", ""),
-                        "sentiment": classify_headline_sentiment(h.get("title", ""))
+                        "sentiment": sentiment_classes[idx] if idx < len(sentiment_classes) else "Neutral"
                     }
-                    for h in headlines[:10]
+                    for idx, h in enumerate(headlines)
                 ]
             }
 

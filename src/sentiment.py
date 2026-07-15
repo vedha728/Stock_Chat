@@ -97,34 +97,33 @@ def classify_headline_sentiment(title: str) -> str:
         return "Neutral"
 
 
-def fallback_sentiment_analysis(headlines: list[str]) -> tuple[float, int, int]:
+def fallback_sentiment_analysis(headlines: list[str]) -> tuple[float, int, int, list[str]]:
     """
     Fast dictionary-based sentiment analyzer. Used when FinBERT
-    is unavailable. Returns (composite_score, positive_count, negative_count).
+    is unavailable. Returns (composite_score, positive_count, negative_count, classes).
     """
     if not headlines:
-        return 0.0, 0, 0
+        return 0.0, 0, 0, []
 
     scores    = []
     pos_count = 0
     neg_count = 0
+    classes   = []
 
     for headline in headlines:
-        words    = set(headline.lower().replace(",", "").replace(".", "").split())
-        pos_hits = len(words & BULLISH_WORDS)
-        neg_hits = len(words & BEARISH_WORDS)
-
-        if pos_hits > neg_hits:
-            scores.append(0.5 + 0.1 * min(pos_hits, 5))
+        cls = classify_headline_sentiment(headline)
+        classes.append(cls)
+        if cls == "Positive":
+            scores.append(0.5)
             pos_count += 1
-        elif neg_hits > pos_hits:
-            scores.append(-0.5 - 0.1 * min(neg_hits, 5))
+        elif cls == "Negative":
+            scores.append(-0.5)
             neg_count += 1
         else:
             scores.append(0.0)
 
-    avg = sum(scores) / len(scores)
-    return float(max(-1.0, min(1.0, avg))), pos_count, neg_count
+    avg = sum(scores) / len(scores) if scores else 0.0
+    return float(max(-1.0, min(1.0, avg))), pos_count, neg_count, classes
 
 
 def deduplicate_headlines(headlines: list[str]) -> list[str]:
@@ -156,17 +155,17 @@ def deduplicate_headlines(headlines: list[str]) -> list[str]:
 # ─────────────────────────────────────────────────────────────
 # Main entry point used by chatbot
 # ─────────────────────────────────────────────────────────────
-def analyze_news_sentiment(headlines: list[str]) -> tuple[float, int, int]:
+def analyze_news_sentiment(headlines: list[str]) -> tuple[float, int, int, list[str]]:
     """
     Analyzes financial news headlines using a 3-tier strategy:
       Tier 1 — AI Sentiment (via Gemini API, serverless, high accuracy)
       Tier 2 — Local FinBERT (transformers/PyTorch, offline fallback)
       Tier 3 — Dictionary-based fallback (instant, dependency-free backup)
 
-    Returns: (composite_score [-1.0 to 1.0], positive_count, negative_count)
+    Returns: (composite_score [-1.0 to 1.0], positive_count, negative_count, classes)
     """
     if not headlines:
-        return 0.0, 0, 0
+        return 0.0, 0, 0, []
 
     # Remove near-duplicate headlines
     orig_count = len(headlines)
@@ -192,7 +191,8 @@ def analyze_news_sentiment(headlines: list[str]) -> tuple[float, int, int]:
                 "Headlines to analyze:\n"
                 + "\n".join(f"- {h}" for h in headlines) + "\n\n"
                 "You MUST return ONLY a JSON object in this exact format (no other text, no markdown wrappers):\n"
-                '{"composite": 0.25, "positive": 2, "negative": 1}'
+                '{"composite": 0.25, "positive": 2, "negative": 1, "classes": ["positive", "neutral", "negative"]}\n'
+                "where 'classes' is an array of strings ('positive', 'negative', or 'neutral') corresponding to each input headline in the exact order received."
             )
             
             for attempt in range(len(keys)):
@@ -212,10 +212,15 @@ def analyze_news_sentiment(headlines: list[str]) -> tuple[float, int, int]:
                     composite = float(data.get("composite", 0.0))
                     pos_count = int(data.get("positive", 0))
                     neg_count = int(data.get("negative", 0))
+                    classes = [c.capitalize() for c in data.get("classes", [])]
+                    
+                    # Ensure classes list length matches headlines length
+                    if len(classes) != len(headlines):
+                        classes = [classify_headline_sentiment(h) for h in headlines]
                     
                     composite = float(max(-1.0, min(1.0, composite)))
                     print(f"[+] AI Sentiment: score={composite:.2f} | pos={pos_count} | neg={neg_count}")
-                    return composite, pos_count, neg_count
+                    return composite, pos_count, neg_count, classes
                 except Exception as api_err:
                     print(f"[Warning] AI Sentiment attempt {attempt+1} failed: {api_err}")
         except Exception as e:
@@ -231,6 +236,7 @@ def analyze_news_sentiment(headlines: list[str]) -> tuple[float, int, int]:
             scores    = []
             pos_count = 0
             neg_count = 0
+            classes   = []
 
             for prediction in results:
                 # prediction is a list of {label, score} dicts for each headline
@@ -242,16 +248,19 @@ def analyze_news_sentiment(headlines: list[str]) -> tuple[float, int, int]:
                 if pos >= neg and pos >= neu:
                     scores.append(pos)
                     pos_count += 1
+                    classes.append("Positive")
                 elif neg >= pos and neg >= neu:
                     scores.append(-neg)
                     neg_count += 1
+                    classes.append("Negative")
                 else:
                     scores.append(0.0)
+                    classes.append("Neutral")
 
             composite = sum(scores) / len(scores) if scores else 0.0
             composite = float(max(-1.0, min(1.0, composite)))
             print(f"[+] FinBERT (local): score={composite:.2f} | pos={pos_count} | neg={neg_count}")
-            return composite, pos_count, neg_count
+            return composite, pos_count, neg_count, classes
 
         except Exception as e:
             print(f"[Warning] Local FinBERT inference error: {e}")
