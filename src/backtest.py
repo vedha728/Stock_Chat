@@ -215,11 +215,16 @@ def run_backtest(ticker: str) -> dict:
     in_trade     = False
     entry_price  = 0.0
     entry_idx    = 0
+    entry_capital = 0.0  # Cash held before entering the trade
     trade_returns = []  # Track returns of individual trades
 
     total_trades   = 0
     winning_trades = 0
     losing_trades  = 0
+
+    fee_rate        = 0.001   # 0.1% transaction fee (brokerage/tax)
+    stop_loss_pct   = -0.025  # -2.5% Stop-loss
+    take_profit_pct = 0.05    # +5.0% Take-profit
 
     for idx in range(len(feature_df)):
         price  = float(feature_df['Close'].iloc[idx])
@@ -228,11 +233,28 @@ def run_backtest(ticker: str) -> dict:
         # If in trade, check exit conditions
         if in_trade:
             days_held = idx - entry_idx
-            # Exit conditions: 5 days passed OR sell signal generated OR last day
-            if days_held >= 5 or signal == 0 or idx == len(feature_df) - 1:
+            current_return = (price - entry_price) / entry_price
+            
+            # Exit conditions: 
+            # 1. Stop-loss hit (<= -2.5%)
+            # 2. Take-profit hit (>= 5.0%)
+            # 3. Time-limit reached (>= 5 days)
+            # 4. Model issued a SELL signal (signal == 0)
+            # 5. Last day of backtest
+            is_stop_loss = current_return <= stop_loss_pct
+            is_take_profit = current_return >= take_profit_pct
+            is_time_exit = days_held >= 5
+            is_sell_signal = signal == 0
+            is_last_day = idx == len(feature_df) - 1
+
+            if is_stop_loss or is_take_profit or is_time_exit or is_sell_signal or is_last_day:
                 # Sell shares
-                cash         = position * price
-                trade_return = (price - entry_price) / entry_price
+                gross_sale   = position * price
+                sell_fee     = gross_sale * fee_rate
+                cash         = gross_sale - sell_fee
+                
+                # Trade return accounts for both entry and exit fees
+                trade_return = (cash - entry_capital) / entry_capital
                 trade_returns.append(trade_return)
 
                 if trade_return > 0:
@@ -246,7 +268,11 @@ def run_backtest(ticker: str) -> dict:
 
         # If not in trade, check entry condition
         elif signal == 2 and idx < len(feature_df) - 1:  # Buy signal
-            position    = cash / price
+            entry_capital = cash
+            buy_fee       = cash * fee_rate
+            net_buy       = cash - buy_fee
+            
+            position    = net_buy / price
             entry_price = price
             entry_idx   = idx
             cash        = 0.0
