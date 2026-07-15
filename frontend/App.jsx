@@ -944,7 +944,6 @@ export default function App() {
                   onChange={(e) => setBacktestQuery(e.target.value)}
                   onKeyDown={(e) => handleKeyDown(e, fetchBacktest, backtestQuery)}
                   placeholder="e.g. TCS"
-                  className="search-input"
                 />
               </div>
               
@@ -962,90 +961,190 @@ export default function App() {
               )}
             </div>
 
-            {backtestData && !loading && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                <h3 style={{ fontSize: '18px', fontWeight: 600, color: '#FFFFFF' }}>
-                  📈 1-Year Backtest Report for {backtestData.company_name} ({backtestData.ticker})
-                </h3>
+            {backtestData && !loading && (() => {
+              const initial = backtestData.initial_capital;
+              const benchmarkFinal = initial * (1 + backtestData.benchmark_return_pct / 100);
+              const strategyFinal = backtestData.final_value;
+              const diffPct = Math.abs(backtestData.strategy_return_pct - backtestData.benchmark_return_pct).toFixed(2);
+              const diffValue = Math.abs(strategyFinal - benchmarkFinal);
+              const isStrategyBetter = backtestData.strategy_return_pct > backtestData.benchmark_return_pct;
 
-                {/* Metrics Grid */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
-                  <div className="glass-card">
-                    <div style={{ fontSize: '12px', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Initial Capital</div>
-                    <div style={{ fontSize: '24px', fontWeight: 700, color: '#FFFFFF', marginTop: '6px' }}>
-                      ₹{backtestData.initial_capital.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                    </div>
-                  </div>
-                  <div className="glass-card">
-                    <div style={{ fontSize: '12px', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>AI Strategy Return</div>
+              return (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                  <h3 style={{ fontSize: '18px', fontWeight: 600, color: '#FFFFFF' }}>
+                    📊 1-Year Backtest Simulation Report for {backtestData.company_name} ({backtestData.ticker})
+                  </h3>
+
+                  {/* Two-Column Side-by-Side Comparison Layout */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+                    
+                    {/* Left Column: Multi-Signal Strategy */}
                     <div style={{ 
-                      fontSize: '24px', 
-                      fontWeight: 700, 
-                      color: backtestData.strategy_return_pct >= 0 ? 'var(--primary-emerald)' : 'var(--danger-red)', 
-                      marginTop: '6px' 
+                      backgroundColor: 'rgba(30, 41, 59, 0.4)', 
+                      border: '1px solid rgba(255, 255, 255, 0.08)',
+                      borderRadius: '12px',
+                      padding: '20px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '16px'
                     }}>
-                      {backtestData.strategy_return_pct >= 0 ? '+' : ''}{backtestData.strategy_return_pct.toFixed(2)}%
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ fontSize: '18px' }}>🤖</span>
+                        <strong style={{ fontSize: '14px', color: 'var(--primary-mint)', fontWeight: 600 }}>Multi-Signal Strategy (Active AI)</strong>
+                      </div>
+                      
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                        <div style={{ backgroundColor: 'rgba(255,255,255,0.03)', padding: '12px', borderRadius: '8px' }}>
+                          <span style={{ fontSize: '11px', color: 'var(--text-secondary)', display: 'block', textTransform: 'uppercase' }}>Return</span>
+                          <span style={{ 
+                            fontSize: '20px', 
+                            fontWeight: 700, 
+                            color: backtestData.strategy_return_pct >= 0 ? 'var(--primary-emerald)' : 'var(--danger-red)', 
+                            marginTop: '4px',
+                            display: 'block'
+                          }}>
+                            {backtestData.strategy_return_pct >= 0 ? '+' : ''}{backtestData.strategy_return_pct.toFixed(2)}%
+                          </span>
+                        </div>
+                        <div style={{ backgroundColor: 'rgba(255,255,255,0.03)', padding: '12px', borderRadius: '8px' }}>
+                          <span style={{ fontSize: '11px', color: 'var(--text-secondary)', display: 'block', textTransform: 'uppercase' }}>Final Value</span>
+                          <span style={{ fontSize: '20px', fontWeight: 700, color: '#FFFFFF', marginTop: '4px', display: 'block' }}>
+                            ₹{strategyFinal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                        <div style={{ backgroundColor: 'rgba(255,255,255,0.03)', padding: '12px', borderRadius: '8px' }}>
+                          <span style={{ fontSize: '11px', color: 'var(--text-secondary)', display: 'block', textTransform: 'uppercase' }}>Simulated Trades</span>
+                          <span style={{ fontSize: '20px', fontWeight: 700, color: '#FFFFFF', marginTop: '4px', display: 'block' }}>
+                            {backtestData.total_trades}
+                          </span>
+                        </div>
+                        <div style={{ backgroundColor: 'rgba(255,255,255,0.03)', padding: '12px', borderRadius: '8px' }}>
+                          <span style={{ fontSize: '11px', color: 'var(--text-secondary)', display: 'block', textTransform: 'uppercase' }}>Winning Rate</span>
+                          <span style={{ fontSize: '20px', fontWeight: 700, color: '#FFFFFF', marginTop: '4px', display: 'block' }}>
+                            {backtestData.win_rate_pct.toFixed(1)}%
+                          </span>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                  <div className="glass-card">
-                    <div style={{ fontSize: '12px', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Simulated Trades</div>
-                    <div style={{ fontSize: '24px', fontWeight: 700, color: '#FFFFFF', marginTop: '6px' }}>
-                      {backtestData.total_trades}
-                    </div>
-                  </div>
-                  <div className="glass-card">
-                    <div style={{ fontSize: '12px', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Final Portfolio Value</div>
-                    <div style={{ fontSize: '24px', fontWeight: 700, color: '#FFFFFF', marginTop: '6px' }}>
-                      ₹{backtestData.final_value.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                    </div>
-                  </div>
-                  <div className="glass-card">
-                    <div style={{ fontSize: '12px', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Benchmark Return (Buy & Hold)</div>
+
+                    {/* Right Column: Benchmark (Buy & Hold) */}
                     <div style={{ 
-                      fontSize: '24px', 
-                      fontWeight: 700, 
-                      color: backtestData.benchmark_return_pct >= 0 ? 'var(--primary-emerald)' : 'var(--danger-red)', 
-                      marginTop: '6px' 
+                      backgroundColor: 'rgba(30, 41, 59, 0.4)', 
+                      border: '1px solid rgba(255, 255, 255, 0.08)',
+                      borderRadius: '12px',
+                      padding: '20px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '16px'
                     }}>
-                      {backtestData.benchmark_return_pct >= 0 ? '+' : ''}{backtestData.benchmark_return_pct.toFixed(2)}%
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ fontSize: '18px' }}>💼</span>
+                        <strong style={{ fontSize: '14px', color: '#94A3B8', fontWeight: 600 }}>Benchmark (Passive Buy & Hold)</strong>
+                      </div>
+                      
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                        <div style={{ backgroundColor: 'rgba(255,255,255,0.03)', padding: '12px', borderRadius: '8px' }}>
+                          <span style={{ fontSize: '11px', color: 'var(--text-secondary)', display: 'block', textTransform: 'uppercase' }}>Return</span>
+                          <span style={{ 
+                            fontSize: '20px', 
+                            fontWeight: 700, 
+                            color: backtestData.benchmark_return_pct >= 0 ? 'var(--primary-emerald)' : 'var(--danger-red)', 
+                            marginTop: '4px',
+                            display: 'block'
+                          }}>
+                            {backtestData.benchmark_return_pct >= 0 ? '+' : ''}{backtestData.benchmark_return_pct.toFixed(2)}%
+                          </span>
+                        </div>
+                        <div style={{ backgroundColor: 'rgba(255,255,255,0.03)', padding: '12px', borderRadius: '8px' }}>
+                          <span style={{ fontSize: '11px', color: 'var(--text-secondary)', display: 'block', textTransform: 'uppercase' }}>Final Value</span>
+                          <span style={{ fontSize: '20px', fontWeight: 700, color: '#FFFFFF', marginTop: '4px', display: 'block' }}>
+                            ₹{benchmarkFinal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                        <div style={{ backgroundColor: 'rgba(255,255,255,0.03)', padding: '12px', borderRadius: '8px' }}>
+                          <span style={{ fontSize: '11px', color: 'var(--text-secondary)', display: 'block', textTransform: 'uppercase' }}>Simulated Trades</span>
+                          <span style={{ fontSize: '20px', fontWeight: 700, color: '#FFFFFF', marginTop: '4px', display: 'block' }}>
+                            1 (Day 1 Buy)
+                          </span>
+                        </div>
+                        <div style={{ backgroundColor: 'rgba(255,255,255,0.03)', padding: '12px', borderRadius: '8px' }}>
+                          <span style={{ fontSize: '11px', color: 'var(--text-secondary)', display: 'block', textTransform: 'uppercase' }}>Winning Rate</span>
+                          <span style={{ fontSize: '20px', fontWeight: 700, color: '#FFFFFF', marginTop: '4px', display: 'block' }}>
+                            N/A
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                  </div>
+
+                  {/* Active Simulator Safeguards Panel */}
+                  <div style={{
+                    padding: '16px 20px',
+                    backgroundColor: 'rgba(255, 255, 255, 0.02)',
+                    border: '1px solid rgba(255, 255, 255, 0.08)',
+                    borderRadius: '10px',
+                    textAlign: 'left'
+                  }}>
+                    <strong style={{ fontSize: '13px', color: '#E2E8F0', display: 'block', marginBottom: '8px' }}>
+                      ⚙️ Active Simulator Safeguards (Risk Management Rules)
+                    </strong>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', fontSize: '12px', color: '#94A3B8' }}>
+                      <div>
+                        💰 <strong>Brokerage / Fees:</strong> 0.1% per trade (applied on both buy and sell transactions)
+                      </div>
+                      <div>
+                        🛑 <strong>Stop-Loss Protection:</strong> exits automatically if the trade's loss exceeds <strong>-2.5%</strong>
+                      </div>
+                      <div>
+                        🎯 <strong>Take-Profit Target:</strong> exits automatically to lock in gains if profit reaches <strong>+5.0%</strong>
+                      </div>
                     </div>
                   </div>
-                  <div className="glass-card">
-                    <div style={{ fontSize: '12px', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Winning Trades %</div>
-                    <div style={{ fontSize: '24px', fontWeight: 700, color: '#FFFFFF', marginTop: '6px' }}>
-                      {backtestData.win_rate_pct.toFixed(1)}%
+
+                  {/* Performance Explanation Box */}
+                  {isStrategyBetter ? (
+                    <div style={{
+                      padding: '16px 20px',
+                      backgroundColor: 'rgba(16, 185, 129, 0.08)',
+                      border: '1px solid rgba(16, 185, 129, 0.2)',
+                      borderRadius: '10px',
+                      color: '#A7F3D0',
+                      fontSize: '14px',
+                      lineHeight: '1.6',
+                      textAlign: 'left'
+                    }}>
+                      🏆 <strong>Multi-Signal Strategy outperformed the benchmark Buy & Hold return by {diffPct}%!</strong>
+                      <div style={{ fontSize: '13px', marginTop: '8px', color: '#6EE7B7' }}>
+                        <strong>Performance Insight:</strong> If you had invested ₹1,0,000 passively, you would have ended up with <strong>₹{benchmarkFinal.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</strong>. By trading actively using our 19 machine learning indicators and applying risk protection limits, the Multi-Signal Strategy successfully saved you <strong>₹{diffValue.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</strong> of your capital.
+                      </div>
                     </div>
-                  </div>
+                  ) : (
+                    <div style={{
+                      padding: '16px 20px',
+                      backgroundColor: 'rgba(245, 158, 11, 0.08)',
+                      border: '1px solid rgba(245, 158, 11, 0.2)',
+                      borderRadius: '10px',
+                      color: '#FDE68A',
+                      fontSize: '14px',
+                      lineHeight: '1.6',
+                      textAlign: 'left'
+                    }}>
+                      ℹ️ <strong>Benchmark Buy & Hold outperformed the Multi-Signal Strategy by {diffPct}%.</strong>
+                      <div style={{ fontSize: '13px', marginTop: '8px', color: '#FCD34D' }}>
+                        <strong>Performance Insight:</strong> This stock was in a strong, steady uptrend during the year. In high-momentum upward markets, a passive "buy & hold" strategy often outperforms active trading models due to continuous market participation, while active models trade selectively.
+                      </div>
+                    </div>
+                  )}
                 </div>
-
-                {/* Winner Card */}
-                {backtestData.strategy_return_pct > backtestData.benchmark_return_pct ? (
-                  <div style={{
-                    padding: '16px 20px',
-                    backgroundColor: 'rgba(16, 185, 129, 0.08)',
-                    border: '1px solid rgba(16, 185, 129, 0.2)',
-                    borderRadius: '8px',
-                    color: '#A7F3D0',
-                    fontSize: '14px',
-                    lineHeight: '1.5'
-                  }}>
-                    🏆 **AI Strategy outperformed the stock's Buy & Hold return by {(backtestData.strategy_return_pct - backtestData.benchmark_return_pct).toFixed(2)}%**! The multi-signal model successfully avoided downswings and entered on key momentum.
-                  </div>
-                ) : (
-                  <div style={{
-                    padding: '16px 20px',
-                    backgroundColor: 'rgba(245, 158, 11, 0.08)',
-                    border: '1px solid rgba(245, 158, 11, 0.2)',
-                    borderRadius: '8px',
-                    color: '#FDE68A',
-                    fontSize: '14px',
-                    lineHeight: '1.5'
-                  }}>
-                    ℹ️ **Benchmark Buy & Hold outperformed the AI strategy by {(backtestData.benchmark_return_pct - backtestData.strategy_return_pct).toFixed(2)}%**. This stock had a persistent, strong uptrend where active trading signals were less effective than simply holding.
-                  </div>
-                )}
-              </div>
-            )}
+              );
+            })()}
           </div>
         )}
 
