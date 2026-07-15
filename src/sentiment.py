@@ -210,13 +210,14 @@ def analyze_news_sentiment(headlines: list[str]) -> tuple[float, int, int, list[
                     
                     data = json.loads(res_text)
                     composite = float(data.get("composite", 0.0))
-                    pos_count = int(data.get("positive", 0))
-                    neg_count = int(data.get("negative", 0))
                     classes = [c.capitalize() for c in data.get("classes", [])]
                     
                     # Ensure classes list length matches headlines length
                     if len(classes) != len(headlines):
                         classes = [classify_headline_sentiment(h) for h in headlines]
+                    
+                    pos_count = classes.count("Positive")
+                    neg_count = classes.count("Negative")
                     
                     composite = float(max(-1.0, min(1.0, composite)))
                     print(f"[+] AI Sentiment: score={composite:.2f} | pos={pos_count} | neg={neg_count}")
