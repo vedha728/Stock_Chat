@@ -810,11 +810,18 @@ def fetch_news_headlines(ticker: str, company_name: str) -> list[dict]:
                         title_text = title_elem.text
                         title_lower = title_text.lower()
                         
-                        # Enforce strict title matching to keep only relevant articles
-                        has_match = (
-                            comp_clean in title_lower or
-                            re.search(rf"\b{re.escape(ticker_clean)}\b", title_lower) is not None
-                        )
+                        # Enforce matching using common stock aliases and abbreviations
+                        aliases = {comp_clean, ticker_clean}
+                        if ticker_clean == "sbin":
+                            aliases.add("sbi")
+                        elif ticker_clean.endswith("bank"):
+                            aliases.add(ticker_clean.replace("bank", ""))
+                        if "bank" in comp_clean:
+                            words = comp_clean.split()
+                            if len(words) >= 2:
+                                aliases.add(" ".join(words[:2]))
+                                
+                        has_match = any((a in title_lower) for a in aliases)
                         if has_match:
                             norm = normalize_title(title_text)
                             if norm not in seen_titles:
