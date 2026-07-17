@@ -5,6 +5,7 @@ import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split, cross_val_score
 from sklearn.metrics import classification_report, accuracy_score, confusion_matrix
+from sklearn.ensemble import RandomForestClassifier
 from xgboost import XGBClassifier
 import joblib
 
@@ -253,6 +254,29 @@ def run_training_pipeline():
     xgb_pred = xgb_model.predict(X_test)
     xgb_acc  = accuracy_score(y_test, xgb_pred)
     print(f"[+] XGBoost done in {xgb_time:.2f}s | Accuracy: {xgb_acc*100:.2f}%")
+
+    # =========================================================
+    # 6. Baseline Model: Random Forest (for comparison)
+    # =========================================================
+    print("\n[*] Training Baseline Random Forest Classifier (for comparison)...")
+    rf_model = RandomForestClassifier(
+        n_estimators=100,
+        max_depth=12,
+        random_state=42,
+        n_jobs=-1
+    )
+    t0_rf = time.time()
+    rf_model.fit(X_train, y_train)
+    rf_time = time.time() - t0_rf
+    rf_pred = rf_model.predict(X_test)
+    rf_acc  = accuracy_score(y_test, rf_pred)
+    print(f"[+] Random Forest done in {rf_time:.2f}s | Accuracy: {rf_acc*100:.2f}%")
+    
+    print("\nRandom Forest Classification Report:")
+    print(classification_report(y_test, rf_pred, target_names=["SELL", "HOLD", "BUY"]))
+    print("Confusion Matrix (SELL=0, HOLD=1, BUY=2):")
+    print(confusion_matrix(y_test, rf_pred))
+    print("="*60)
 
     # =========================================================
     # 7. Detailed XGBoost Report
