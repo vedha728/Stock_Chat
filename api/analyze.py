@@ -144,11 +144,13 @@ class handler(BaseHTTPRequestHandler):
                         sentiment_summary = (0.0, 0, 0, 0)
                         sent_score, pos_count, neg_count = 0.0, 0, 0
                         sentiment_classes = []
+                        titles_list = []
                 except Exception:
                     sentiment_summary = (0.0, 0, 0, 0)
                     sent_score, pos_count, neg_count = 0.0, 0, 0
                     sentiment_classes = []
                     headlines = []
+                    titles_list = []
 
                 # 4. Resolve Institutional Flow (FII/DII)
                 try:
